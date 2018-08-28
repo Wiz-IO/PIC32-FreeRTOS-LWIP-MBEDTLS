@@ -6,6 +6,7 @@ Microchip Curiosity PIC32MZ - FreeRTOS - LWIP - MBEDTLS
 https://www.microchip.com/DevelopmentTools/ProductDetails/dm320104
 
 **Software**
+* MPLAB-X + XC32
 * FreeRTOS v10.1.0 + umm_malloc
 * lwip v2.0.2
 * mbedtls
@@ -16,18 +17,21 @@ https://www.microchip.com/DevelopmentTools/ProductDetails/dm320104
 **Board**
 
 Config board at 200 mips
+
 Debug: UART1 (DMA later)
 
 **FreeRTOS**
 
 FreeRTOSConfig.h
 port.c - portTICK_PERIOD_MS = 10 msec
+```
 #define portTIMER_PRESCALE	64 /* 1:0, 8:1, 64:2, 256:3 */
 #define portPRESCALE_BITS	2
-
+```
 umm_malloc_cfg.h 
+```
 #define UMM_MALLOC_CFG__HEAP_SIZE   (configTOTAL_HEAP_SIZE)
-
+```
 Linker options: --wrap,malloc --wrap,free
 ```
 TEST...
