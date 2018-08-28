@@ -1,6 +1,9 @@
 #include "mrf.h"
 #include "mrf_api.h"
 
+SemaphoreHandle_t wifi_connected;
+SemaphoreHandle_t wifi_ip_ready;
+
 static void WPSDoneCB(void);
 static void ScanDoneCB(uint32_t status);
 static void InitDoneCB(void);
@@ -70,11 +73,8 @@ static void WPSDoneCB(void) {
 static void RFReadyCB(uint8_t const * const addr) {
     g_wdrv_priv.updateMacAddressRequired = 1;
     memcpy(g_wdrv_priv.macAddr, addr, sizeof (g_wdrv_priv.macAddr));
-#if 0    
     memcpy(wlan.hwaddr, addr, ETHARP_HWADDR_LEN);
-#endif    
     TRACE_HEX("[MRF] MAC: %s", addr, sizeof (g_wdrv_priv.macAddr));
-
 }
 
 static void InitDoneCB(void) {
@@ -85,25 +85,25 @@ static void InitDoneCB(void) {
 static void ReceiveCB(uint32_t len, uint8_t const *const frame) {
     if (!WDRV_isPacketValid(frame))
         return;
-    TRACE("[MRF] ReceiveCB()\n");
-#if 0    
+    //TRACE("[MRF] ReceiveCB()\n");  
     struct pbuf * pb = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
     if (pb) {
         pbuf_take(pb, frame, len);
-        WIFI_SendMessageFromISR(MSG_WIFI_RECEIVE, (uint32_t) pb, 0);
+        wifi_receive(&wlan, pb);
+        //WIFI_SendMessageFromISR(MSG_WIFI_RECEIVE, (uint32_t) pb, 0);
         //WIFI_SendMessage(MSG_WIFI_RECEIVE, (uint32_t) pb, 0);
     } else {
         TRACE("[ERROR] ReceiveCB() NO MEMORY\n");
     }
-#endif
 }
 
 static void ConnectionStateUpdate(bool connected, uint8_t reason) {
-    TRACE("[MRF] ConnectionStateUpdate( %d, %d )\n", (int) connected, (int) reason);
-}
-
-static void ConnectionStateSet(bool state) {
-    TRACE("[MRF] ConnectionStateSet( %d )\n", (int) state);
+    TRACE("[MRF] ConnectionStateUpdate( %d ) %s\n", (int) connected, s_connect_failure_reason[reason]);
+    static bool _conn_state = false;
+    if (connected != _conn_state) {
+        wifi_set_state(connected);
+        _conn_state = connected;
+    }
 }
 
 static void ProceedConnectEventCB(uint32_t connected, uint8_t devID, uint8_t *mac, bool macConn, uint8_t reason) {
@@ -111,13 +111,11 @@ static void ProceedConnectEventCB(uint32_t connected, uint8_t devID, uint8_t *ma
     static bool softAPStarted = false;
     if (connected == true) {
         if (WDRV_CONFIG_PARAMS(networkType) == WDRV_NETWORK_TYPE_INFRASTRUCTURE) {
-            ConnectionStateSet(true);
             ConnectionStateUpdate(connected, reason);
             TRACE("[MRF] Connected to AP\n");
         } else if (WDRV_CONFIG_PARAMS(networkType) == WDRV_NETWORK_TYPE_SOFT_AP) {
             if (!softAPStarted) {
                 softAPStarted = true;
-                ConnectionStateSet(true);
                 ConnectionStateUpdate(connected, reason);
                 TRACE("[MRF] SoftAP network is enabled\r\n");
             } else {
@@ -127,13 +125,11 @@ static void ProceedConnectEventCB(uint32_t connected, uint8_t devID, uint8_t *ma
         }
     } else if (connected == false) {
         if (WDRV_CONFIG_PARAMS(networkType) == WDRV_NETWORK_TYPE_INFRASTRUCTURE) {
-            ConnectionStateSet(false);
             ConnectionStateUpdate(connected, reason);
             TRACE("[MRF] Connection failed - %s\n", s_connect_failure_reason[reason]);
         } else if (WDRV_CONFIG_PARAMS(networkType) == WDRV_NETWORK_TYPE_SOFT_AP) {
             if (memcmp(mac, macAllFF, 6) == 0) {
                 softAPStarted = false;
-                ConnectionStateSet(false);
                 ConnectionStateUpdate(connected, reason);
                 TRACE("[MRF] SoftAP network is disabled\n");
             } else {
@@ -158,6 +154,17 @@ void WDRV_Init(void) {
     WDRV_HibernateDisable();
     WDRV_EXT_Misc_Config(s_wdrvext_config);
     WDRV_EXT_Initialize(&MRF_CB);
+
+
+    wifi_connected = xSemaphoreCreateBinary();
+    wifi_ip_ready = xSemaphoreCreateBinary();
+}
+
+void wifi_begin(int d) {
+    xSemaphoreTake(wifi_connected, portMAX_DELAY);
+    if (d)
+        xSemaphoreTake(wifi_ip_ready, portMAX_DELAY);
+    vTaskDelay(10);
 }
 
 void WDRV_DeInit(void) {

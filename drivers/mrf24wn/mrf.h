@@ -155,6 +155,15 @@ extern WDRV_SCAN_STATUS g_wdrv_scanStatus;
 //typedef void (*GPIO_OUTLOW_T)(uint32_t channel, uint32_t bit_pos);
 //typedef void (*GPIO_OUTHIGH_T)(uint32_t channel, uint32_t bit_pos);
 
+#include "lwip/opt.h"
+#include "lwip/def.h"
+#include "lwip/mem.h"
+#include "lwip/pbuf.h"
+#include "lwip/inet.h"
+#include "lwip/dhcp.h"
+#include "lwip/prot/dhcp.h"
+#include "netif/etharp.h"
+
 void WDRV_Config(void);
 void WDRV_Init(void);
 void WDRV_DeInit(void);
@@ -162,7 +171,15 @@ void WDRV_Connect(void);
 bool WDRV_isPacketValid(uint8_t const *const frame);
 void MRF_ClientCacheUpdate(bool connected, uint8_t *mac);
 
+extern struct netif wlan;
 void wifi_config(char * str_ip, char * str_mask, char * str_gw);
+void wifi_receive(struct netif * interface, struct pbuf * pb);
+err_t wifi_send(struct netif * interface, struct pbuf *pb);
+void wifi_set_state(bool state);
+
+extern SemaphoreHandle_t wifi_connected;
+extern SemaphoreHandle_t wifi_ip_ready;
+void wifi_begin(int d);
 
 #ifdef	__cplusplus
 }

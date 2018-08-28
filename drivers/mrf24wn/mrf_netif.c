@@ -32,8 +32,8 @@ err_t wifi_send(struct netif * interface, struct pbuf *pb) {
     return (err_t) rc;
 }
 
-static void wifi_receive(struct netif * interface, struct pbuf * pb) {
-    if (!pb) return;    
+void wifi_receive(struct netif * interface, struct pbuf * pb) {
+    if (!pb) return;
     struct netif * netif;
     uint8_t result;
     for (netif = netif_list; (netif != NULL) && (netif->state != (void*) interface); netif = netif->next);
@@ -84,4 +84,32 @@ void wifi_config(char * str_ip, char * str_mask, char * str_gw) {
     if (!netif_add(&wlan, &ip_addr, &ip_mask, &ip_gw, &wlan, wifi_init, ethernet_input)) {
         TRACE(("[MRF] Could not add WLAN interface\n"));
     }
+}
+
+static void wifi_ip_ready_callback(struct netif * netif){
+    if (!ip4_addr_isany_val(netif->ip_addr)) {
+        char ip_addr[17] = {0};
+        if (NULL != inet_ntoa(netif->ip_addr)) {
+            strcpy(ip_addr, inet_ntoa(netif->ip_addr));
+            TRACE("[MRF] DHCP GOT IP: %s\n", ip_addr);
+            xSemaphoreGive(wifi_ip_ready);
+        } else {
+            TRACE("[ERROR] DHCP got Failed\n");
+        }
+    }
+}
+
+void wifi_set_state(bool connected) {
+    if (connected) {
+        netif_set_status_callback(&wlan, wifi_ip_ready_callback);
+        netif_set_link_up(&wlan);
+        netif_set_up(&wlan);
+        netif_set_default(&wlan);
+        if (dhcp_start(&wlan) != ERR_OK) {
+            TRACE("[ERROR] DHCP failed\n");
+        }
+        TRACE("[MRF] DHCP started\n");
+        xSemaphoreGive(wifi_connected);
+    } else
+        netif_set_down(&wlan);
 }

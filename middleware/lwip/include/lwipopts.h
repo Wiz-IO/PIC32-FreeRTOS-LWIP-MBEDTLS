@@ -3,6 +3,9 @@
 
 #include "FreeRTOSConfig.h"
 
+#define TCPIP_THREAD_PRIO               TASK_PRIORITY_SOFT_REALTIME
+#define TCPIP_THREAD_NAME              "TCPIP"
+#define TCPIP_THREAD_STACKSIZE          (10*1024u)
 #define TCPIP_MBOX_SIZE                 16
 #define DEFAULT_RAW_RECVMBOX_SIZE       16
 #define DEFAULT_UDP_RECVMBOX_SIZE       16
@@ -287,7 +290,7 @@ a lot of data that needs to be copied, this should be set high. */
 
 #define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL
 #define ETHARP_DEBUG                    LWIP_DBG_OFF
-#define NETIF_DEBUG                     LWIP_DBG_ON
+#define NETIF_DEBUG                     LWIP_DBG_OFF
 #define PBUF_DEBUG                      LWIP_DBG_OFF
 #define API_LIB_DEBUG                   LWIP_DBG_OFF
 #define API_MSG_DEBUG                   LWIP_DBG_OFF
@@ -316,18 +319,17 @@ a lot of data that needs to be copied, this should be set high. */
 #define TCPIP_DEBUG                     LWIP_DBG_OFF
 #define PPP_DEBUG                       LWIP_DBG_OFF
 #define SLIP_DEBUG                      LWIP_DBG_OFF
-#define DHCP_DEBUG                      LWIP_DBG_ON
+#define DHCP_DEBUG                      LWIP_DBG_OFF
 #define AUTOIP_DEBUG                    LWIP_DBG_OFF
 #define SNMP_MSG_DEBUG                  LWIP_DBG_OFF
 #define SNMP_MIB_DEBUG                  LWIP_DBG_OFF
-#define DNS_DEBUG                       LWIP_DBG_ON
+#define DNS_DEBUG                       LWIP_DBG_OFF
 
 
 
 #define MEM_LIBC_MALLOC                 1
 #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
 #define LWIP_TIMEVAL_PRIVATE            0
-//#define TCPIP_THREAD_NAME              "TCPIP"
 
 
 #define __SELECT_NUINT32 2
