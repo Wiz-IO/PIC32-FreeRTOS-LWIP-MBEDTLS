@@ -14,10 +14,12 @@ https://www.microchip.com/DevelopmentTools/ProductDetails/dm320104
 **PORTING**
 
 **Board**
+
 Config board at 200 mips
 Debug: UART1 (DMA later)
 
 **FreeRTOS**
+
 FreeRTOSConfig.h
 port.c - portTICK_PERIOD_MS = 10 msec
 #define portTIMER_PRESCALE	64 /* 1:0, 8:1, 64:2, 256:3 */
@@ -27,7 +29,7 @@ umm_malloc_cfg.h
 #define UMM_MALLOC_CFG__HEAP_SIZE   (configTOTAL_HEAP_SIZE)
 
 Linker options: --wrap,malloc --wrap,free
-
+```
 TEST...
 [APP] --- BEGIN ---
 [APP] - DRIVER -
@@ -40,9 +42,11 @@ TEST...
 [MRF] Connected to AP
 [MRF] ReceiveCB()
 [MRF] ReceiveCB()
+```
 
 **LWIP**
 
+```
 TEST...
 netif: netmask of interface .. set to 255.0.0.0
 netif: GW address of interface .. set to 127.0.0.1
@@ -64,10 +68,10 @@ netif: added interface w0 IP addr 0.0.0.0 netmask 0.0.0.0 gw 0.0.0.0
 [MRF] ConnectionStateUpdate( 1, 0 )
 [MRF] Connected to AP
 [MRF] ReceiveCB()
-
-
+```
 
 **MBEDTLS**
+
 ...
 
 in process....
