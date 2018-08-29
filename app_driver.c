@@ -4,7 +4,7 @@
 
 void entryDRIVER(void * arg) {
     (void) arg;
-    TRACE("[APP] - DRIVER -\n");
+    TRACE("[APP] - DRIVER TEST -\n");
     WDRV_Init();
     while (1) {
         delay_ms(100);        

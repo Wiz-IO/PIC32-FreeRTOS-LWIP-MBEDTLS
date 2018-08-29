@@ -8,8 +8,9 @@
 #define TASK_PRIORITY_SOFT_REALTIME             4                             
 #define TASK_PRIORITY_HARD_REALTIME             5
 #define TASK_PRIORITY_HISR_TASK                 6
-#define TASK_PRIORITY_OS_TIMER                  7     
-#define TASK_PRIORITY_MAX                       8 
+#define TASK_PRIORITY_MAX                       7
+
+#define TASK_PRIORITY_OS_TIMER                  TASK_PRIORITY_NORMAL /* TODO EDIT */
 
 #define configUSE_PREEMPTION                    1
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 1
@@ -23,7 +24,7 @@
 #define configSUPPORT_DYNAMIC_ALLOCATION        1
 #define configSUPPORT_STATIC_ALLOCATION         0
 #define configTOTAL_HEAP_SIZE                   ( ( size_t ) 128 * 1024 )
-#define configMAX_TASK_NAME_LEN                 ( 16 )
+#define configMAX_TASK_NAME_LEN                 ( 8 )
 #define configUSE_16_BIT_TICKS                  0
 #define configIDLE_SHOULD_YIELD                 1
 #define configUSE_MUTEXES                       1
@@ -62,7 +63,6 @@
 /* Misc */
 #define configUSE_APPLICATION_TASK_TAG          1
 
-
 /* Interrupt nesting behaviour configuration. */
 
 /* The priority at which the tick interrupt runs.  This should probably be kept at 1. */
@@ -70,7 +70,7 @@
 
 /* The maximum interrupt priority from which FreeRTOS.org API functions can be called.  
 Only API functions that end in ...FromISR() can be used within interrupts. */
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY    3
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY    3 /* TODO EDIT */
 
 /* Optional functions - most linkers will remove unused functions anyway. */
 #define INCLUDE_vTaskPrioritySet                1

@@ -2,7 +2,10 @@
 #include "osal.h"
 
 extern void entryDRIVER(void * arg);
-extern void entryWIFI(void * arg);
+extern void entrySOCKET(void * arg);
+extern void entryHTTP(void * arg);
+extern void entryPING(void * arg);
+extern void entrySNTP(void * arg);
 
 void entryBLINK(void * arg) {
     (void) arg;
@@ -16,9 +19,14 @@ void entryBLINK(void * arg) {
 int main(void) {
     SYS_Init();
     tcpip_init(0, 0);
-    TRACE("[APP] --- BEGIN ---\n");
+    TRACE("[APP] - BEGIN -\n");
     xTaskCreate(entryBLINK, "BLINK", configMINIMAL_STACK_SIZE, NULL, TASK_PRIORITY_LOW, NULL);
+    
     //xTaskCreate(entryDRIVER, "DRV", 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
-    xTaskCreate(entryWIFI, "WIFI", 10*1024, NULL, TASK_PRIORITY_NORMAL, NULL);
+    //xTaskCreate(entrySOCKET, "SOCK", 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
+    //xTaskCreate(entryHTTP, "HTTP", 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
+    //xTaskCreate(entryPING, "PING", 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
+    xTaskCreate(entrySNTP, "SNTP", 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
+    
     vTaskStartScheduler();
 }

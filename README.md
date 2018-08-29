@@ -6,11 +6,17 @@ Microchip Curiosity PIC32MZ - FreeRTOS - LWIP - MBEDTLS
 https://www.microchip.com/DevelopmentTools/ProductDetails/dm320104
 
 **Software**
-* MPLAB-X + XC32
+* Compiler MPLAB-X + XC32
 * FreeRTOS v10.1.0 + umm_malloc
 * lwip v2.0.2
 * mbedtls
 * MRF24WN Driver: at this stage - just to work
+* OTHER:
+    * cJSON
+    * ping
+    * sntp
+    * httpclient
+    * MQTT Client - Eclipse Paho (later)
 
 **PORTING**
 
@@ -33,10 +39,11 @@ umm_malloc_cfg.h
 #define UMM_MALLOC_CFG__HEAP_SIZE   (configTOTAL_HEAP_SIZE)
 ```
 Linker options: --wrap,malloc --wrap,free
+
 ```
 TEST...
 [APP] --- BEGIN ---
-[APP] - DRIVER -
+[APP] - DRIVER TEST -
 [APP] - BLINK -
 [MRF] MAC: 001EC03B2D2F
 [MRF] Init Done
@@ -45,79 +52,98 @@ TEST...
 [MRF] ConnectionStateUpdate( 1, 0 )
 [MRF] Connected to AP
 [MRF] ReceiveCB()
-[MRF] ReceiveCB()
 ```
 
 **LWIP**
 
+*TODO: FD_SETS macros...*
+
+SOCKET TEST...
 ```
-TEST...
-netif: netmask of interface .. set to 255.0.0.0
-netif: GW address of interface .. set to 127.0.0.1
-netif_set_ipaddr: netif address being changed
-netif: IP address of interface .. set to 127.0.0.1
-netif: added interface lo IP addr 127.0.0.1 netmask 255.0.0.0 gw 127.0.0.1
-dns_init: initializing
-[APP] --- BEGIN ---
-[APP] - LWIP -
-netif: IP address of interface .. set to 0.0.0.0
-netif: netmask of interface .. set to 0.0.0.0
-netif: GW address of interface .. set to 0.0.0.0
-netif: added interface w0 IP addr 0.0.0.0 netmask 0.0.0.0 gw 0.0.0.0
+[APP] - BEGIN -
+[APP] - SOCKET -
 [APP] - BLINK -
 [MRF] MAC: 001EC03B2D2F
 [MRF] Init Done
-[MRF] WiFi Connecting . . .
-[MRF] ConnectionStateSet( 1 )
-dhcp_start(netif=0x80020200) w01
-dhcp_start(): starting new DHCP client
-dhcp_start(): allocated dhcpdhcp_start(): starting DHCP configuration
-dhcp_discover()
-transaction id xid(446B9B3D)
-dhcp_discover: making request
-dhcp_discover: realloc()ing
-dhcp_discover: sendto(DISCOVER, IP_ADDR_BROADCAST, DHCP_SERVER_PORT)
-dhcp_discover: deleting()ing
-dhcp_discover: SELECTING
-dhcp_discover(): set request timeout 2000 msecs
-[MRF] DHCP started[MRF] ConnectionStateUpdate( 1, 0 )
-[MRF] Connected to AP
-[MRF] ReceiveCB()
-dhcp_recv(pbuf = 0x8000b4ac) from DHCP server 192.168.12.1 port 67
-pbuf->len = 300
-pbuf->tot_len = 300
-searching DHCP_OPTION_MESSAGE_TYPE
-DHCP_OFFER received in DHCP_STATE_SELECTING state
-dhcp_handle_offer(netif=0x80020200) w01
-dhcp_handle_offer(): server 0x010CA8C0
-dhcp_handle_offer(): offer for 0x240CA8C0
-dhcp_select(netif=0x80020200) w01
-transaction id xid(446B9B3D)
-dhcp_select: REQUESTING
-dhcp_select(): set request timeout 2000 msecs
-[MRF] ReceiveCB()
-dhcp_recv(pbuf = 0x8000b4ac) from DHCP server 192.168.12.1 port 67
-pbuf->len = 300
-pbuf->tot_len = 300
-searching DHCP_OPTION_MESSAGE_TYPE
-DHCP_ACK received
-dhcp_bind(netif=0x80020200) w01
-dhcp_bind(): t0 renewal timer 86400 secs
-dhcp_bind(): set request timeout 86400000 msecs
-dhcp_bind(): t1 renewal timer 43200 secs
-dhcp_bind(): set request timeout 43200000 msecs
-dhcp_bind(): t2 rebind timer 75600 secs
-dhcp_bind(): set request timeout 75600000 msecs
-dhcp_bind(): IP: 0x240CA8C0 SN: 0x00FFFFFF GW: 0x010CA8C0
-netif: netmask of interface w0 set to 255.255.255.0
-netif: GW address of interface w0 set to 192.168.12.1
-netif_set_ipaddr: netif address being changed
-netif: IP address of interface w0 set to 192.168.12.36
-[MRF] ReceiveCB()
+[MRF] WIFI Connecting . . .
+[MRF] WIFI Connected to AP
+[APP] WIFI READY
+[APP] - IP: 192.168.12.36
+[APP] - GW: 192.168.12.1
+[APP] - MS: 255.255.255.0
+[APP] - D0: 244.0.0.128
+[APP] - D1: 248.0.0.128
+[DNS] www.wizio.eu IP: 228.24.2.128
+HTTP/1.1 200 OK
+Date: Wed, 29 Aug 2018 10:18:16 GMT
+Server: Apache
+X-Powered-By: PHP/5.2.17
+Cache-Control: max-age=0
+Expires: Wed, 29 Aug 2018 10:18:16 GMT
+Connection: close
+Content-Type: text/html
+[APACHE] Hello World ( 29.08.2018  13:18:16 )
+[APP] DONE
 ```
 
+HTTP TEST...
+```
+[APP] - BEGIN -
+[APP] - HTTP TEST -
+[APP] - BLINK -
+[MRF] MAC: 001EC03B2D2F
+[MRF] Init Done
+[MRF] WIFI Connecting . . .
+[MRF] WIFI Connected to AP
+[APP] WIFI READY
+[HTTP] Data received: [APACHE] Hello World ( 29.08.2018  10:57:33 )
+[HTTP] Data received: [APACHE] Hello World ( 29.08.2018  10:58:35 )
+```
+
+PING TEST...
+```
+[APP] - BEGIN -
+[APP] - PING TEST -
+[APP] - BLINK -
+[MRF] MAC: 001EC03B2D2F
+[MRF] Init Done
+[MRF] WIFI Connecting . . .
+[MRF] WIFI Connected to AP
+[APP] WIFI READY
+[PING-I]: ping: send seq(0x0001) 172.217.169.110
+[PING-I]: ping: recv seq(0x0001) 172.217.169.110, 20 ms
+.........
+[PING-I]: 172.217.169.110, Packets: Sent = 3, Received =1, Lost = 2 (66% loss)
+[PING-I]:  Packets: min = 20, max =20, avg = 6
+```
+
+SNTP TEST...
+```
+[APP] - BEGIN -
+[APP] - SNTP TEST -
+[APP] - BLINK -
+[MRF] MAC: 001EC03B2D2F
+[MRF] Init Done
+[MRF] WIFI Connecting . . .
+[MRF] WIFI Connected to AP
+[APP] WIFI READY
+[SNTP]: sntp_request: current server address is 87.97.157.120
+[SNTP]: sntp_send_request: Sending request to server
+[SNTP]: sntp_set_system_time input:  1535541550 s,0 us
+[SNTP]: sntp(3 7 29 
+[SNTP]: 11:19:10 118)
+[SNTP]: sntp(atx):(0:240)
+[SNTP]: sntp st1(0)
+[SNTP]: sntp(3  8  29 
+[SNTP]: 11:19:10 18)
+[SNTP]: sntp st2(0)
+[SNTP]: sntp_process: Wed Aug 29 11:19:10 2018
+[SNTP]: sntp_recv: Scheduled next time request: 3600000 ms
+```
+
+
 **MBEDTLS**
+later...
+project is in process....
 
-...
-
-in process....
+**If you want to help / support - contact me**

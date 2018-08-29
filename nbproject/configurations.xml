@@ -27,6 +27,12 @@
         </logicalFolder>
       </logicalFolder>
       <logicalFolder name="middleware" displayName="middleware" projectFiles="true">
+        <logicalFolder name="cjson" displayName="cjson" projectFiles="true">
+          <itemPath>middleware/cjson/cJSON.c</itemPath>
+          <itemPath>middleware/cjson/cJSON_internal.c</itemPath>
+          <itemPath>middleware/cjson/cJSON.h</itemPath>
+          <itemPath>middleware/cjson/cJSON_internal.h</itemPath>
+        </logicalFolder>
         <logicalFolder name="freertos" displayName="freertos" projectFiles="true">
           <logicalFolder name="include" displayName="include" projectFiles="true">
             <itemPath>middleware/freertos/include/FreeRTOSConfig.h</itemPath>
@@ -53,6 +59,10 @@
           <itemPath>middleware/freertos/stream_buffer.c</itemPath>
           <itemPath>middleware/freertos/tasks.c</itemPath>
           <itemPath>middleware/freertos/timers.c</itemPath>
+        </logicalFolder>
+        <logicalFolder name="http" displayName="http" projectFiles="true">
+          <itemPath>middleware/http/httpclient.c</itemPath>
+          <itemPath>middleware/http/httpclient.h</itemPath>
         </logicalFolder>
         <logicalFolder name="lwip" displayName="lwip" projectFiles="true">
           <logicalFolder name="api" displayName="api" projectFiles="true">
@@ -225,10 +235,18 @@
             <itemPath>middleware/lwip/port/sys_arch.c</itemPath>
           </logicalFolder>
         </logicalFolder>
+        <logicalFolder name="ping" displayName="ping" projectFiles="true">
+          <itemPath>middleware/ping/ping.c</itemPath>
+          <itemPath>middleware/ping/ping.h</itemPath>
+        </logicalFolder>
+        <logicalFolder name="sntp" displayName="sntp" projectFiles="true">
+          <itemPath>middleware/sntp/sntp.c</itemPath>
+          <itemPath>middleware/sntp/sntp.h</itemPath>
+        </logicalFolder>
         <logicalFolder name="wizio" displayName="wizio" projectFiles="true">
-          <itemPath>middleware/wizio/osal.c</itemPath>
           <itemPath>middleware/wizio/osal.h</itemPath>
           <itemPath>middleware/wizio/wrap_mem.c</itemPath>
+          <itemPath>middleware/wizio/freertos_common.c</itemPath>
         </logicalFolder>
       </logicalFolder>
       <logicalFolder name="sys" displayName="sys" projectFiles="true">
@@ -239,10 +257,15 @@
         <itemPath>sys/sys_common.c</itemPath>
         <itemPath>sys/sys_debug.h</itemPath>
         <itemPath>sys/sys.h</itemPath>
+        <itemPath>sys/sys_rtcc.c</itemPath>
+        <itemPath>sys/sys_rtcc.h</itemPath>
       </logicalFolder>
       <itemPath>main.c</itemPath>
       <itemPath>app_driver.c</itemPath>
       <itemPath>app_lwip.c</itemPath>
+      <itemPath>app_http.c</itemPath>
+      <itemPath>app_ping.c</itemPath>
+      <itemPath>app_sntp.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -301,7 +324,7 @@
         <property key="enable-unroll-loops" value="false"/>
         <property key="exclude-floating-point" value="false"/>
         <property key="extra-include-directories"
-                  value="sys;middleware\freertos\include;middleware\freertos\portable\MemMang;middleware\freertos\portable\MPLAB\PIC32MZ;middleware\wizio;drivers\mrf24wn;middleware\lwip\include;middleware\lwip\port\include"/>
+                  value="sys;middleware\freertos\include;middleware\freertos\portable\MemMang;middleware\freertos\portable\MPLAB\PIC32MZ;middleware\wizio;drivers\mrf24wn;middleware\lwip\include;middleware\lwip\port\include;middleware\http;middleware\ping;middleware\sntp"/>
         <property key="generate-16-bit-code" value="false"/>
         <property key="generate-micro-compressed-code" value="false"/>
         <property key="isolate-each-function" value="false"/>

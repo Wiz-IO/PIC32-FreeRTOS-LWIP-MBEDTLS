@@ -12,6 +12,8 @@
 #define DEFAULT_TCP_RECVMBOX_SIZE       16
 #define DEFAULT_ACCEPTMBOX_SIZE         16
 
+#define LWIP_RAW                        1 /* for ping */
+
 //fix http IOT issue
 #define LWIP_WND_SCALE                  1
 #define TCP_RCV_SCALE                   1

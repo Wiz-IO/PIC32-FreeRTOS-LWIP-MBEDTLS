@@ -8,10 +8,11 @@
 #include "lwip/dns.h"
 #include "lwip/netdb.h"
 
+#define HOST    "www.wizio.eu"
 static SemaphoreHandle_t dns_ready;
-static char * GET = "GET /index.php HTTP/1.0\r\n\r\n";
-static char response[1024];
-static ip_addr_t resolved;
+static char * GET = "GET /test.php HTTP/1.0\r\nHost: "HOST"\r\n\r\n";
+static char response[256];
+static struct sockaddr_in server;
 
 void PrintAddress(void) {
     TRACE("[APP] - IP: %s\n", inet_ntoa(wlan.ip_addr));
@@ -24,64 +25,54 @@ void PrintAddress(void) {
 }
 
 void dns_cb(const char * name, const ip_addr_t * ip_addr, void * arg) {
-    if (!arg) return;
-    char str[17] = {0};
-    resolved.addr = ip_addr->addr;
-    if (NULL != inet_ntoa(ip_addr)) {
-        strcpy(str, inet_ntoa(ip_addr));
-        TRACE("[DNS] %s IP: %s\n", name, str);
-    } else {
-        TRACE("[ERROR] DNS: %u IP: %s\n", ip_addr->addr);
-    }
-    xSemaphoreGive(dns_ready);
+    server.sin_addr.s_addr = ip_addr->addr;
+    TRACE("[DNS] %s IP: %s\n", name, inet_ntoa(ip_addr));
+    if (dns_ready)
+        xSemaphoreGive(dns_ready);
 }
 
-void entryWIFI(void * arg) {
+void entrySOCKET(void * arg) {
     (void) arg;
-    TRACE("[APP] - WIFI -\n");
+    TRACE("[APP] - SOCKET -\n");
     int rc;
-    struct sockaddr_in a;
+    ip_addr_t resolved;
     dns_ready = xSemaphoreCreateBinary();
     LED_ORANGE_OFF();
     wifi_config(0, 0, 0);
     wifi_begin(1);
     TRACE("[APP] WIFI READY\n");
     PrintAddress();
+    memset(&server, 0, sizeof (server));
+    server.sin_len = sizeof (server);
+    server.sin_family = AF_INET;
+    server.sin_port = PP_HTONS(80);
 START:
-    LED_ORANGE_ON();
-    memset(&a, 0, sizeof (a));
-    a.sin_len = sizeof (a);
-    a.sin_family = AF_INET;
-    a.sin_port = PP_HTONS(80);
-    rc = dns_gethostbyname("google.com", &resolved, dns_cb, dns_ready);
+    // --- RESOLVE URL ---
+    rc = dns_gethostbyname(HOST, &resolved, dns_cb, NULL);
     switch (rc) {
         case ERR_OK:
-            TRACE("[DNS] OK\n");
             LED_ORANGE_ON();
             break;
         case ERR_INPROGRESS:
-            TRACE("[DNS] INPROGRESS\n");
             xSemaphoreTake(dns_ready, portMAX_DELAY);
-            TRACE("[DNS] DONE\n");
             break;
         default:
             TRACE("[ERROR] dns_gethostbyname( %d )\n", rc);
             goto END;
     }
-    a.sin_addr.s_addr = resolved.addr;
-
+    // CREATE SOCKET
     int soc = lwip_socket(AF_INET, SOCK_STREAM, 0);
     if (soc < 0) {
-        TRACE("[ERROR] lwip_socket()\n");
+        TRACE("[ERROR] lwip_socket( %d )\n", soc);
         goto END;
     }
-
-    rc = lwip_connect(soc, (struct sockaddr*) &a, sizeof (a));
+    // CONNECT
+    rc = lwip_connect(soc, (struct sockaddr*) &server, sizeof (server));
     if (rc) {
         TRACE("[ERROR] lwip_connect( %d )\n", rc);
         goto ERR;
     }
-
+    // SEND DATA
     int total = strlen(GET), sent = 0;
     do {
         rc = lwip_write(soc, GET + sent, total - sent);
@@ -93,14 +84,14 @@ START:
             break;
         sent += rc;
     } while (sent < total);
-
+    // RECEIVE DATA
     memset(response, 0, sizeof (response));
     total = sizeof (response) - 1;
     int received = 0;
     do {
         rc = lwip_read(soc, response + received, total - received);
         if (rc < 0) {
-            TRACE("[ERROR] lwip_read( %d )", rc);
+            TRACE("[ERROR] lwip_read( %d )\n", rc);
             goto ERR;
         }
         if (rc == 0)
@@ -108,18 +99,14 @@ START:
         received += rc;
     } while (received < total);
     TRACE("%s", response);
+    TRACE("\n[APP] DONE\n\n", rc);
 ERR:
     lwip_close(soc);
-END:            
-    rc = 100;
+END:
+    rc = 60;
     while (rc--) {
         LED_ORANGE_TOGGLE();
-        delay_ms(100);
+        delay_ms(1000);
     }
     goto START;
-
-    while (1) {
-        LED_ORANGE_TOGGLE();
-        delay_ms(100);
-    }
 }

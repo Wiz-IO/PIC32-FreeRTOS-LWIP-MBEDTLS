@@ -22,7 +22,7 @@ static WDRV_CALLBACKS MRF_CB = {
 static uint32_t s_wdrvext_config[] = {
     0u, // MODULE_EVENT_PRINT, 
     TASK_PRIORITY_NORMAL, // WDRV_EXT_RTOS_INIT_TASK_PRIORITY, 
-    TASK_PRIORITY_NORMAL, // WDRV_EXT_RTOS_MAIN_TASK_PRIORITY,
+    TASK_PRIORITY_HIGH, // WDRV_EXT_RTOS_MAIN_TASK_PRIORITY,
     512u, // WDRV_EXT_RTOS_INIT_TASK_SIZE, 
     2048u, // WDRV_EXT_RTOS_MAIN_TASK_SIZE, 
     5u, // WDRV_BOARD_TYPE 5=DRV_BD_TYPE_CUSTOM
@@ -90,15 +90,12 @@ static void ReceiveCB(uint32_t len, uint8_t const *const frame) {
     if (pb) {
         pbuf_take(pb, frame, len);
         wifi_receive(&wlan, pb);
-        //WIFI_SendMessageFromISR(MSG_WIFI_RECEIVE, (uint32_t) pb, 0);
-        //WIFI_SendMessage(MSG_WIFI_RECEIVE, (uint32_t) pb, 0);
     } else {
-        TRACE("[ERROR] ReceiveCB() NO MEMORY\n");
+        TRACE_ERROR();
     }
 }
 
 static void ConnectionStateUpdate(bool connected, uint8_t reason) {
-    TRACE("[MRF] ConnectionStateUpdate( %d ) %s\n", (int) connected, s_connect_failure_reason[reason]);
     static bool _conn_state = false;
     if (connected != _conn_state) {
         wifi_set_state(connected);
@@ -112,7 +109,7 @@ static void ProceedConnectEventCB(uint32_t connected, uint8_t devID, uint8_t *ma
     if (connected == true) {
         if (WDRV_CONFIG_PARAMS(networkType) == WDRV_NETWORK_TYPE_INFRASTRUCTURE) {
             ConnectionStateUpdate(connected, reason);
-            TRACE("[MRF] Connected to AP\n");
+            TRACE("[MRF] WIFI Connected to AP\n");
         } else if (WDRV_CONFIG_PARAMS(networkType) == WDRV_NETWORK_TYPE_SOFT_AP) {
             if (!softAPStarted) {
                 softAPStarted = true;
@@ -155,14 +152,14 @@ void WDRV_Init(void) {
     WDRV_EXT_Misc_Config(s_wdrvext_config);
     WDRV_EXT_Initialize(&MRF_CB);
 
-
     wifi_connected = xSemaphoreCreateBinary();
     wifi_ip_ready = xSemaphoreCreateBinary();
 }
 
 void wifi_begin(int d) {
-    xSemaphoreTake(wifi_connected, portMAX_DELAY);
-    if (d)
+    if (wifi_connected)
+        xSemaphoreTake(wifi_connected, portMAX_DELAY);
+    if (d && wifi_ip_ready)
         xSemaphoreTake(wifi_ip_ready, portMAX_DELAY);
     vTaskDelay(10);
 }

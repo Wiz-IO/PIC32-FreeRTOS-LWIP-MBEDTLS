@@ -16,16 +16,16 @@ WDRV_CONFIG_DATA *p_wdrv_configData = &s_wdrv_configData;
 /* LIB */
 void wc_ErrorString(int error, char * buffer) {
     TRACE("[MRF] wc_ErrorString( %d )\n", error);
-    sprintf(buffer, "Error: %d", error);
+    sprintf(buffer, "[MRF] ERROR %d", error);
 }
 
 /* LIB */
 void WDRV_Assert(int condition, const char * msg, const char * file, int line) {
     if (!condition) {
         if (*msg)
-            TRACE("\n[MRF] Wi-Fi driver ASSERTS: %s\n%s, line %u\n", msg, file, line);
+            TRACE("\n[MRF] Driver ASSERTS: %s\n%s, line %u\n", msg, file, line);
         else
-            TRACE("\n[MRF] Wi-Fi driver ASSERTS:\n%s, line %u\n", file, line);
+            TRACE("\n[MRF] Driver ASSERTS:\n%s, line %u\n", file, line);
     }
 }
 
@@ -35,16 +35,16 @@ static void netModeSet(uint8_t networkType) {
             WDRV_EXT_CmdNetModeBSSSet();
             break;
         case WDRV_NETWORK_TYPE_ADHOC:
-            WDRV_ASSERT(false, "Ad-Hoc is not supported for now");
+            WDRV_ASSERT(false, "[MRF] Ad-Hoc is not supported for now");
             break;
         case WDRV_NETWORK_TYPE_SOFT_AP:
             WDRV_EXT_CmdNetModeAPSet();
             break;
         case WDRV_NETWORK_TYPE_P2P:
-            WDRV_ASSERT(false, "P2P is not supported for now");
+            WDRV_ASSERT(false, "[MRF] P2P is not supported for now");
             break;
         default:
-            WDRV_ASSERT(false, "Undefined network type");
+            WDRV_ASSERT(false, "[MRF] Undefined network type");
             break;
     }
 }
@@ -83,7 +83,7 @@ static void securitySet(uint8_t securityMode) {
             WDRV_EXT_CmdSecWpsSet(pinMode, WDRV_CONFIG_PARAMS(securityKey), WDRV_CONFIG_PARAMS(securityKeyLen));
             break;
         default:
-            WDRV_ASSERT(false, "Undefined security mode");
+            WDRV_ASSERT(false, "[MRF] Undefined security mode");
             break;
     }
 }
@@ -228,7 +228,7 @@ void WDRV_Connect(void) {
     WDRV_EXT_CmdPowerSavePut(false);
     if ((WDRV_CONFIG_PARAMS(securityMode) != WDRV_SECURITY_WPS_PIN) &&
             (WDRV_CONFIG_PARAMS(securityMode) != WDRV_SECURITY_WPS_PUSH_BUTTON)) {
-        TRACE("[MRF] WiFi Connecting . . .\n");
+        TRACE("[MRF] WIFI Connecting . . .\n");
         WDRV_EXT_CmdConnect();
     }
 }
