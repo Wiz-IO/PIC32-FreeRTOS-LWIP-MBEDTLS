@@ -12,11 +12,15 @@ https://www.microchip.com/DevelopmentTools/ProductDetails/dm320104
 * mbedtls
 * MRF24WN Driver: at this stage - just to work
 * OTHER:
-    * cJSON
+    * cJSON || jsmn
+    * RIL (later, ppp for Quectel modules)
     * ping
     * sntp
     * httpclient
-    * MQTT Client - Eclipse Paho (later)
+    * MQTT Client - Eclipse Paho (in progress...)
+    * AWS (later)
+    * fatfs (later, SD card)
+    * coap (maybe)
 
 **PORTING**
 
