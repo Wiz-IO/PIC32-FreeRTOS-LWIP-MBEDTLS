@@ -33,7 +33,7 @@ Debug: UART1 (DMA later)
 **FreeRTOS**
 
 FreeRTOSConfig.h
-port.c - portTICK_PERIOD_MS = 10 msec
+port.c - portTICK_PERIOD_MS = 1 msec
 ```
 #define portTIMER_PRESCALE	64 /* 1:0, 8:1, 64:2, 256:3 */
 #define portPRESCALE_BITS	2
@@ -147,7 +147,27 @@ SNTP TEST...
 
 
 **MBEDTLS**
-later...
+ready...update soon
+
+```
+[MRF] Init Done
+[MRF] WIFI Connecting . . .
+[MRF] WIFI Connected to AP
+[APP] WIFI READY
+[HTTP] GET: http://www.wizio.eu/test.php
+[HTTP] Elapsed: 42 mSec
+[HTTP] Received: [APACHE] Hello World ( 03.09.2018 15:04:37 )
+[HTTPS] GET: https://tlstest.paypal.com/
+[HTTPS] Elapsed: 2507 mSec
+[HTTPS] Received: PayPal_Connection_OK
+[HTTPS] GET: https://raw.githubusercon.../LIB/master/test_https
+[HTTPS] Elapsed: 4130 mSec
+[HTTPS] Received: [GITHUB] https test url
+[HTTPS] GET: https://os.mbed.com/media...bed_official/hello.txt
+[HTTPS] Elapsed: 3290 mSec
+[HTTPS] Received: Hello world!
+```
+
 project is in process....
 
 **If you want to help / support - contact me**
