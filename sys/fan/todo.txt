@@ -1,0 +1,42 @@
+Status:
+- = Planned.
+X = In progress, some work done.
+* = Done.
+? = Not sure if worth the effort or useful at all.
+N = Decided against.
+
+Version 0.1.2
+
+Version 0.1.1
+
+
+Version 0.1.0
+X Support for peripherial of PIC32MZ EF devices.
+X ADC12 driver implementation for PIC32MZ EF devices.
+* CMP driver implementation for PIC32MZ EF devices.
+* COMMON driver implementation for PIC32MZ EF devices.
+* CVREF driver implementation for PIC32MZ EF devices.
+* COMMON driver implementation for PIC32MZ EF devices.
+X DMA driver implementation for PIC32MZ EF devices.
+* I2C driver implementation for PIC32MZ EF devices.
+* INCAP driver implementation for PIC32MZ EF devices.
+X INT driver implementation for PIC32MZ EF devices.
+* LOCK driver implementation for PIC32MZ EF devices.
+* NVM driver implementation for PIC32MZ EF devices.
+* OSC driver implementation for PIC32MZ EF devices.
+* OUTCOMPRARE driver implementation for PIC32MZ EF devices.
+* PCACHE driver implementation for PIC32MZ EF devices.
+* PMP driver implementation for PIC32MZ EF devices.
+* PORTS driver implementation for PIC32MZ EF devices.
+* POWER driver implementation for PIC32MZ EF devices.
+* PPS driver implementation for PIC32MZ EF devices.
+* RESET driver implementation for PIC32MZ EF devices.
+* SPI driver implementation for PIC32MZ EF devices.
+* SYSTEM driver implementation for PIC32MZ EF devices.
+* TIMER driver implementation for PIC32MZ EF devices.
+* UART driver implementation for PIC32MZ EF devices.
+* WDT driver implementation for PIC32MZ EF devices.
+- RTCC driver implementation for PIC32MZ EF devices.
+- ETH driver implementation for PIC32MZ EF devices.
+- CAN driver implementation for PIC32MZ EF devices.
+- SQI driver implementation for PIC32MZ EF devices.

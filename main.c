@@ -1,32 +1,29 @@
+/*
+ *  Created on: 30.08.2018
+ *      Author: Georgi Angelov
+ */
+
 #include "sys.h"
 #include "osal.h"
+#include "lwip/tcpip.h"
 
-extern void entryDRIVER(void * arg);
-extern void entrySOCKET(void * arg);
-extern void entryHTTP(void * arg);
-extern void entryPING(void * arg);
-extern void entrySNTP(void * arg);
+void entryHTTP(void * arg);
 
 void entryBLINK(void * arg) {
     (void) arg;
-    TRACE("[APP] - BLINK -\n");
+    LOG("[BLINK] BEGIN\n");
     while (1) {
-        delay_ms(1000);        
+        delay_ms(100);
         LED_GREEN_TOGGLE();
     }
 }
 
 int main(void) {
     SYS_Init();
+    LOG("[MAIN] BEGIN\n");   
     tcpip_init(0, 0);
-    TRACE("[APP] - BEGIN -\n");
+    WIFI_Start(NULL, NULL, NULL);
     xTaskCreate(entryBLINK, "BLINK", configMINIMAL_STACK_SIZE, NULL, TASK_PRIORITY_LOW, NULL);
-    
-    //xTaskCreate(entryDRIVER, "DRV", 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
-    //xTaskCreate(entrySOCKET, "SOCK", 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
-    //xTaskCreate(entryHTTP, "HTTP", 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
-    //xTaskCreate(entryPING, "PING", 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
-    xTaskCreate(entrySNTP, "SNTP", 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
-    
+    xTaskCreate(entryHTTP, "HTTP", 6 * 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
     vTaskStartScheduler();
 }

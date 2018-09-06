@@ -1,3 +1,8 @@
+/*
+ *  Created on: 30.08.2018
+ *      Author: Georgi Angelov
+ */
+
 #include "mrf_osal.h"
 
 OSAL_RESULT OSAL_SEM_Create(OSAL_SEM_HANDLE_TYPE* semID, OSAL_SEM_TYPE type, uint8_t maxCount, uint8_t initialCount) {

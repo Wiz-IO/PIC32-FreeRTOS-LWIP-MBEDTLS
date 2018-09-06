@@ -1,3 +1,8 @@
+/*
+ *  Created on: 30.08.2018
+ *      Author: Georgi Angelov
+ */
+
 #include "mrf_hal.h"
 
 static inline __attribute__((__always_inline__)) void SPI3_WaitForDataByte(void) {
@@ -74,14 +79,14 @@ void WDRV_SPI_In(uint8_t * const OutBuf, uint16_t OutSize, uint8_t * const InBuf
 }
 
 void WDRV_SPI_Init(void) {
-    SystemUnlock();
+    SYS_SystemUnlock();
     INT3R = 2; // RPF4 INT3 RF4 
     SDI3R = 6; // SDI3 RB10 MISO INPUT
     RPB9R = 7; // SDO3 RB9 MOSI OUTPUT
     TRISBCLR = MASK(14); // CLK output
     TRISBCLR = MASK(9); // MOSI output
     TRISBSET = MASK(10); // MISO input    
-    SystemLock();
+    SYS_SystemLock();
 
     WD_INT_DIR_INPUT();
     WD_HIBERNATE_LO();
@@ -92,7 +97,7 @@ void WDRV_SPI_Init(void) {
     SPI3CON = 0;
     int i, dumy;
     for (i = 0; i < 16; i++) dumy = SPI3BUF;
-    SPI3BRG = spi_calutate_brg(SYS_CLK_BUS_PERIPHERAL_1, 1000000);
+    SPI3BRG = spi_calutate_brg(SYS_CLK_BUS_PERIPHERAL_1, 8000000);
     SPI3CONSET = _SPI3CON_MSTEN_MASK | _SPI3CON_CKE_MASK;
     SPI3CONSET = _SPI3CON_ON_MASK; /* Enable SPI */
 
@@ -105,17 +110,6 @@ void WDRV_SPI_Deinit(void) {
     SPI3CON = 0;
     SPI3CONSET = 0;
     WDRV_GPIO_PowerDown();
-}
-
-/* LIB*/
-extern void WDRV_EXT_HWInterruptHandler(void const *pointer);
-
-void ISR_MRF24WN(void) {
-    WD_INT_DISABLE(); // disable further interrupts
-    WD_INT_CLEAR();
-    LED_RED_ON();
-    WDRV_EXT_HWInterruptHandler(NULL);
-    LED_RED_OFF();
 }
 
 /* LIB */
@@ -138,4 +132,16 @@ void WDRV_INTR_Init(void) {
 /* LIB */
 void WDRV_INTR_Deinit(void) {
     WDRV_INTR_SourceDisable();
+}
+
+/* LIB, 
+ * add mrf_isr.S !!! 
+ */
+extern void WDRV_EXT_HWInterruptHandler(void const *pointer);
+void ISR_MRF24WN(void) {
+    WD_INT_DISABLE(); // disable further interrupts
+    WD_INT_CLEAR();
+    LED_RED_ON();
+    WDRV_EXT_HWInterruptHandler(NULL);
+    LED_RED_OFF();
 }

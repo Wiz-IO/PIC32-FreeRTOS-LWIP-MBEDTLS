@@ -1,4 +1,4 @@
-/* WizIO
+/*
  * Copyright (c) 2001-2003 Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -29,6 +29,12 @@
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
+
+/*
+ *  Created on: 30.08.2018
+ *      MOD: Georgi Angelov
+ */
+
 
 //*****************************************************************************
 //
@@ -384,8 +390,9 @@ void sys_init(void) {
     srand(rand());
 }
 
+//[WizIO] Returns the current time in milliseconds, may be the same as sys_jiffies or at least based on it.
 u32_t sys_now(void) {
-    return xTaskGetTickCount();
+    return xTaskGetTickCount() * portTICK_PERIOD_MS;
 }
 
 /*---------------------------------------------------------------------------*
@@ -465,7 +472,7 @@ void sys_arch_unprotect(sys_prot_t xValue) {
 
 void sys_assert(const char *pcMessage) {
     (void) pcMessage;
-    TRACE("sys_assert : loop forever\n");
+    LOG("sys_assert : loop forever\n");
     for (;;) {
     }
 }

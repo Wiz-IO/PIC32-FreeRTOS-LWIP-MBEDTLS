@@ -193,19 +193,20 @@ lwip_strnicmp(const char* str1, const char* str2, size_t len)
  * @ingroup sys_nonstandard
  * lwIP default implementation for itoa() non-standard function.
  * This can be \#defined to itoa() or snprintf(result, bufsize, "%d", number) depending on your platform port.
+ * [WizIO] base to Base
  */
 void
 lwip_itoa(char* result, size_t bufsize, int number)
 {
-  const int base = 10;
+  const int Base = 10;
   char* ptr = result, *ptr1 = result, tmp_char;
   int tmp_value;
   LWIP_UNUSED_ARG(bufsize);
 
   do {
     tmp_value = number;
-    number /= base;
-    *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"[35 + (tmp_value - number * base)];
+    number /= Base;
+    *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"[35 + (tmp_value - number * Base)];
   } while(number);
 
    /* Apply negative sign */

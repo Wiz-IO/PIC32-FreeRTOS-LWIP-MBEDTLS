@@ -1,8 +1,6 @@
-/* 
- * File:   osal.h
- * Author: HP
- *
- * Created on 27 Август 2018, 21:00
+/*
+ *  Created on: 30.08.2018
+ *      Author: Georgi Angelov
  */
 
 #ifndef OSAL_H

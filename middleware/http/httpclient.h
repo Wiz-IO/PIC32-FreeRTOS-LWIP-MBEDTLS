@@ -23,6 +23,9 @@
 #include <stdbool.h>
 #include "lwip/sockets.h"
 
+#define HTTPCLIENT_SSL_ENABLE
+
+
 #ifdef HTTPCLIENT_SSL_ENABLE
 //#include "mbedtls/compat-1.3.h"
 #include "mbedtls/net.h"
@@ -37,6 +40,7 @@ extern "C"
 {
 #endif
 
+    
 /**
  * @addtogroup HttpClient
  * @{
@@ -108,7 +112,7 @@ typedef struct {
     char *auth_user;                /**< Username for basic authentication. */
     char *auth_password;            /**< Password for basic authentication. */
     bool is_http;                   /**< Http connection? if 1, http; if 0, https. */
-#ifdef HTTP_SSL_ENABLE
+#ifdef HTTPCLIENT_SSL_ENABLE
     const char *server_cert;        /**< Server certification. */
     const char *client_cert;        /**< Client certification. */
     const char *client_pk;          /**< Client private key. */
@@ -316,14 +320,10 @@ int httpclient_get_response_header_value(char *header_buf, char *name, int *val_
 * @}
 */
 
-/* The following content is used in the HttpClient module. */
-#define HTTPCLIENT_DEBUG 0
-
-
-#ifdef HTTP_SSL_ENABLE
+#ifdef HTTPCLIENT_SSL_ENABLE
 typedef struct {
     mbedtls_ssl_context ssl_ctx;        /* mbedtls ssl context */
-    mbedtls_net_context net_ctx;        /* Fill in socket id */
+    mbedtls_net_context net_ctx;        /* Fill in socket id */ 
     mbedtls_ssl_config ssl_conf;        /* SSL configuration */
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctr_drbg;

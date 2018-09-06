@@ -1,3 +1,8 @@
+/*
+ *  Created on: 30.08.2018
+ *      Author: Georgi Angelov
+ */
+
 #include "sys.h"
 
 #ifdef DEBUG
@@ -27,14 +32,16 @@ static char *cause[] = {
 };
 #endif
 
-void _general_exception_handler ( void ) {
+void _general_exception_handler(void) {
 #ifdef DEBUG   
     _excep_code = (_CP0_GET_CAUSE() & 0x0000007C) >> 2;
     _excep_addr = _CP0_GET_EPC();
-    _cause_str  = cause[_excep_code];
-    TRACE("[TRAP] General Exception %s (cause=%d, addr=%x).", _cause_str, _excep_code, _excep_addr);
-#endif
-    LED_RED_ON();
-    while (1);
+    _cause_str = cause[_excep_code];
+    LOG("[TRAP] General Exception %s (cause = %d, addr = %x).", _cause_str, _excep_code, _excep_addr);
+#endif  
+    while (1) {
+        LED_RED_ON();
+        DelayMS(200);
+    }
 }
 

@@ -1,30 +1,31 @@
+/*
+ *  Created on: 30.08.2018
+ *      Author: Georgi Angelov
+ */
+
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
 #define TASK_PRIORITY_IDLE                      0                   
 #define TASK_PRIORITY_LOW                       1             
 #define TASK_PRIORITY_NORMAL                    2                                  
-#define TASK_PRIORITY_HIGH                      3                
-#define TASK_PRIORITY_SOFT_REALTIME             4                             
-#define TASK_PRIORITY_HARD_REALTIME             5
-#define TASK_PRIORITY_HISR_TASK                 6
-#define TASK_PRIORITY_MAX                       7
+#define TASK_PRIORITY_HIGH                      3    
 
-#define TASK_PRIORITY_OS_TIMER                  TASK_PRIORITY_NORMAL /* TODO EDIT */
+#define TASK_PRIORITY_MAX                       10UL
 
 #define configUSE_PREEMPTION                    1
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 1
 #define configUSE_TICKLESS_IDLE                 0
 #define configCPU_CLOCK_HZ                      ( 200000000UL )
 #define configPERIPHERAL_CLOCK_HZ               ( 100000000UL )
-#define configTICK_RATE_HZ                      ( ( TickType_t ) 100 )
+#define configTICK_RATE_HZ                      ( ( TickType_t ) 1000 )
 #define configMAX_PRIORITIES                    ( TASK_PRIORITY_MAX )
-#define configMINIMAL_STACK_SIZE                ( 190 )
-#define configISR_STACK_SIZE                    ( 400 )
+#define configMINIMAL_STACK_SIZE                ( 512 )
+#define configISR_STACK_SIZE                    ( 512 )
 #define configSUPPORT_DYNAMIC_ALLOCATION        1
 #define configSUPPORT_STATIC_ALLOCATION         0
 #define configTOTAL_HEAP_SIZE                   ( ( size_t ) 128 * 1024 )
-#define configMAX_TASK_NAME_LEN                 ( 8 )
+#define configMAX_TASK_NAME_LEN                 ( 16 )
 #define configUSE_16_BIT_TICKS                  0
 #define configIDLE_SHOULD_YIELD                 1
 #define configUSE_MUTEXES                       1
@@ -35,7 +36,7 @@
 #define configUSE_QUEUE_SETS                    0
 #define configUSE_TIME_SLICING                  0
 #define configUSE_NEWLIB_REENTRANT              0
-//#define configENABLE_BACKWARD_COMPATIBILITY     0/**/
+//#define configENABLE_BACKWARD_COMPATIBILITY   0
 #define configUSE_TASK_FPU_SUPPORT              0
 
 /* Hook function related definitions. */
@@ -55,18 +56,18 @@
 
 /* Software timer related definitions. */
 #define configUSE_TIMERS                        1
-#define configTIMER_TASK_PRIORITY               ( TASK_PRIORITY_OS_TIMER )
+#define configTIMER_TASK_PRIORITY               ( TASK_PRIORITY_NORMAL )
 #define configTIMER_QUEUE_LENGTH                10
 #define configTIMER_TASK_STACK_DEPTH            ( configMINIMAL_STACK_SIZE * 2 )
 #define configUSE_DAEMON_TASK_STARTUP_HOOK      0
 
 /* Misc */
-#define configUSE_APPLICATION_TASK_TAG          1
+#define configUSE_APPLICATION_TASK_TAG          0
 
 /* Interrupt nesting behaviour configuration. */
 
 /* The priority at which the tick interrupt runs.  This should probably be kept at 1. */
-#define configKERNEL_INTERRUPT_PRIORITY         1
+#define configKERNEL_INTERRUPT_PRIORITY         1 /* IPC1bits.T1IP */
 
 /* The maximum interrupt priority from which FreeRTOS.org API functions can be called.  
 Only API functions that end in ...FromISR() can be used within interrupts. */
@@ -81,12 +82,16 @@ Only API functions that end in ...FromISR() can be used within interrupts. */
 #define INCLUDE_vTaskDelay                      1
 #define INCLUDE_xTaskGetSchedulerState          1
 #define INCLUDE_xTaskGetCurrentTaskHandle       0
-#define INCLUDE_uxTaskGetStackHighWaterMark     1/**/
-#define INCLUDE_xTaskGetIdleTaskHandle          1/**/
+#define INCLUDE_uxTaskGetStackHighWaterMark     1
+#define INCLUDE_xTaskGetIdleTaskHandle          1
 #define INCLUDE_eTaskGetState                   0
 #define INCLUDE_xEventGroupSetBitFromISR        0
 #define INCLUDE_xTimerPendFunctionCall          0
 #define INCLUDE_xTaskAbortDelay                 0
 #define INCLUDE_xTaskGetHandle                  0
+
+
+/* Define to trap errors during development. */
+#define configASSERT( x ) if( x == 0 ) vAssertCalled( __FILE__, __LINE__ )
 
 #endif /* FREERTOS_CONFIG_H */

@@ -2,7 +2,7 @@
  * File:   mrf_osal.h
  * Author: Georgi Angelov
  *
- * Created on 28 Август 2018, 09:56
+ * Created on 28.08.2018, 09:56
  */
 
 #ifndef MRF_OSAL_H
@@ -43,7 +43,7 @@ typedef enum OSAL_RESULT {
 } OSAL_RESULT;
 
 
-#define WDRV_ASSERT(FLAG, MSG)          TRACE(MSG);while(FLAG)
+#define WDRV_ASSERT(FLAG, MSG)          LOG(MSG);while(FLAG)
 #define WDRV_TIME_DELAY(msec)           WDRV_UsecDelay(msec * 1000)
 #define WDRV_TASK_CREATE(func, alias, stackDepth, param, prio, handle) WDRV_TaskCreate(func, alias, stackDepth, param, prio, handle, 0)
 #define WDRV_TASK_DELETE(handle)        WDRV_TaskDestroy(handle)

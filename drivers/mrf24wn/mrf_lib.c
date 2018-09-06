@@ -1,6 +1,9 @@
-#include "sys.h"
+/*
+ *  Created on: 30.08.2018
+ *      Author: Georgi Angelov
+ */
+
 #include "mrf.h"
-#include "mrf_api.h"
 
 /* Used from static LIB */
 WDRV_MRF24WN_PRIV g_wdrv_priv = {
@@ -8,14 +11,15 @@ WDRV_MRF24WN_PRIV g_wdrv_priv = {
     .isDisconnectRequested = true
 };
 WDRV_SCAN_STATUS g_wdrv_scanStatus;
-static TCPIP_MAC_ADDR s_MulticastFilter[MAX_MULTICAST_FILTER_SIZE];
+
 static WDRV_CONFIG_DATA s_wdrv_configData;
 WDRV_CONFIG_DATA *p_wdrv_configData = &s_wdrv_configData;
 
+static TCPIP_MAC_ADDR s_MulticastFilter[MAX_MULTICAST_FILTER_SIZE];
 
 /* LIB */
 void wc_ErrorString(int error, char * buffer) {
-    TRACE("[MRF] wc_ErrorString( %d )\n", error);
+    LOG("[MRF] wc_ErrorString( %d )\n", error);
     sprintf(buffer, "[MRF] ERROR %d", error);
 }
 
@@ -23,9 +27,9 @@ void wc_ErrorString(int error, char * buffer) {
 void WDRV_Assert(int condition, const char * msg, const char * file, int line) {
     if (!condition) {
         if (*msg)
-            TRACE("\n[MRF] Driver ASSERTS: %s\n%s, line %u\n", msg, file, line);
+            LOG("\n[MRF] Driver ASSERTS: %s\n%s, line %u\n", msg, file, line);
         else
-            TRACE("\n[MRF] Driver ASSERTS:\n%s, line %u\n", file, line);
+            LOG("\n[MRF] Driver ASSERTS:\n%s, line %u\n", file, line);
     }
 }
 
@@ -120,7 +124,7 @@ void WDRV_Config(void) {
             WDRV_CONFIG_PARAMS(securityKeyLen) = sizeof (WDRV_DEFAULT_WPS_PIN);
             break;
         default:
-            TRACE("[MRF] Unsupported security mode\n");
+            LOG("[MRF] Unsupported security mode\n");
             break;
     }
 }
@@ -228,7 +232,7 @@ void WDRV_Connect(void) {
     WDRV_EXT_CmdPowerSavePut(false);
     if ((WDRV_CONFIG_PARAMS(securityMode) != WDRV_SECURITY_WPS_PIN) &&
             (WDRV_CONFIG_PARAMS(securityMode) != WDRV_SECURITY_WPS_PUSH_BUTTON)) {
-        TRACE("[MRF] WIFI Connecting . . .\n");
+        LOG("[MRF] WIFI Connecting . . .\n");
         WDRV_EXT_CmdConnect();
     }
 }

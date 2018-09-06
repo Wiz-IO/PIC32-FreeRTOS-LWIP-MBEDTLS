@@ -40,7 +40,7 @@
 #include <stdio.h> /* printf, fflush, FILE */
 #include <string.h>
 #include <stdlib.h> /* abort */
-#include <errno.h>
+//////////////////////////////////////////////////////////////#include <errno.h>
 #if (!defined(__CC_ARM)) && (!defined(__ICCARM__))
 #include <sys/time.h>
 #endif
@@ -82,13 +82,13 @@ typedef u32_t sys_prot_t;
 
 #define PACK_STRUCT_STRUCT __attribute__( (packed) )
 
-#define LWIP_LOGE(fmt,...)   TRACE("[ERR] "fmt,##__VA_ARGS__)
-#define LWIP_LOGW(fmt,...)   TRACE("[WRN] "fmt,##__VA_ARGS__)
-#define LWIP_LOGI(fmt,...)   TRACE(fmt,##__VA_ARGS__)
+#define LWIP_LOGE(fmt,...)   LOG("[ERR] "fmt,##__VA_ARGS__)
+#define LWIP_LOGW(fmt,...)   LOG("[WRN] "fmt,##__VA_ARGS__)
+#define LWIP_LOGI(fmt,...)   LOG("[DBG] "fmt,##__VA_ARGS__)
 
 #define LWIP_PLATFORM_DIAG(x)   do { LWIP_LOGI x; } while(0)
-#define LWIP_PLATFORM_ASSERT(x) do { TRACE("[ASSERT] \"%s\" failed at line %d in %s\n", x, __LINE__, __FILE__); } while(0)
-#define LWIP_ERROR(message, expression, handler) do { if (!(expression)) { TRACE("[ASSERT] \"%s\" failed at line %d in %s\n", message, __LINE__, __FILE__); handler;} } while(0)
+#define LWIP_PLATFORM_ASSERT(x) do { LOG("[ASSERT] \"%s\" failed at line %d in %s\n", x, __LINE__, __FILE__); } while(0)
+#define LWIP_ERROR(message, expression, handler) do { if (!(expression)) { LOG("[ASSERT] \"%s\" failed at line %d in %s\n", message, __LINE__, __FILE__); handler;} } while(0)
 
 u32_t dns_lookup_external_hosts_file(const char *name);
 

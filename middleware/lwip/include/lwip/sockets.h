@@ -31,7 +31,7 @@
  *
  * This file is part of the lwIP TCP/IP stack.
  *
- * Author: Adam Dunkels <adam@sics.se>
+ * Author: Adam Dunkels <adam@sics.se> 
  *
  */
 
@@ -405,22 +405,19 @@ typedef struct ip_mreq {
 #endif
 
 /* FD_SET used for lwip_select */
+
 #ifndef FD_SET
 #undef  FD_SETSIZE
 /* Make FD_SETSIZE match NUM_SOCKETS in socket.c */
 #define FD_SETSIZE    MEMP_NUM_NETCONN
-#define FDSETSAFESET(n, code) do { \
-  if (((n) - LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n) - LWIP_SOCKET_OFFSET) >= 0)) { \
-  code; }} while(0)
-#define FDSETSAFEGET(n, code) (((n) - LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n) - LWIP_SOCKET_OFFSET) >= 0) ?\
-  (code) : 0)
+#define FDSETSAFESET(n, code) do { if (((n) - LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n) - LWIP_SOCKET_OFFSET) >= 0)) { code; }} while(0)
+#define FDSETSAFEGET(n, code) (((n) - LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n) - LWIP_SOCKET_OFFSET) >= 0) ? (code) : 0)
 #define FD_SET(n, p)  FDSETSAFESET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] |=  (1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
 #define FD_CLR(n, p)  FDSETSAFESET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] &= ~(1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
 #define FD_ISSET(n,p) FDSETSAFEGET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] &   (1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
 #define FD_ZERO(p)    memset((void*)(p), 0, sizeof(*(p)))
 
-typedef struct fd_set
-{
+typedef struct fd_set {
   unsigned char fd_bits [(FD_SETSIZE+7)/8];
 } fd_set;
 
@@ -492,17 +489,14 @@ int lwip_connect(int s, const struct sockaddr *name, socklen_t namelen);
 int lwip_listen(int s, int backlog);
 int lwip_recv(int s, void *mem, size_t len, int flags);
 int lwip_read(int s, void *mem, size_t len);
-int lwip_recvfrom(int s, void *mem, size_t len, int flags,
-      struct sockaddr *from, socklen_t *fromlen);
+int lwip_recvfrom(int s, void *mem, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen);
 int lwip_send(int s, const void *dataptr, size_t size, int flags);
 int lwip_sendmsg(int s, const struct msghdr *message, int flags);
-int lwip_sendto(int s, const void *dataptr, size_t size, int flags,
-    const struct sockaddr *to, socklen_t tolen);
+int lwip_sendto(int s, const void *dataptr, size_t size, int flags, const struct sockaddr *to, socklen_t tolen);
 int lwip_socket(int domain, int type, int protocol);
 int lwip_write(int s, const void *dataptr, size_t size);
 int lwip_writev(int s, const struct iovec *iov, int iovcnt);
-int lwip_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
-                struct timeval *timeout);
+int lwip_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, struct timeval *timeout);
 int lwip_ioctl(int s, long cmd, void *argp);
 int lwip_fcntl(int s, int cmd, int val);
 

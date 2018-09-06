@@ -3,9 +3,12 @@
 
 #include "FreeRTOSConfig.h"
 
-#define TCPIP_THREAD_PRIO               TASK_PRIORITY_SOFT_REALTIME
+#define NO_SYS                          0
+
+#define TCPIP_THREAD_PRIO               TASK_PRIORITY_HIGH
 #define TCPIP_THREAD_NAME              "TCPIP"
 #define TCPIP_THREAD_STACKSIZE          (10*1024u)
+
 #define TCPIP_MBOX_SIZE                 16
 #define DEFAULT_RAW_RECVMBOX_SIZE       16
 #define DEFAULT_UDP_RECVMBOX_SIZE       16
@@ -25,10 +28,9 @@
 //for ip display
 #define LWIP_NETIF_STATUS_CALLBACK      1
 
-#define ETH_PAD_SIZE    0
+#define ETH_PAD_SIZE                    0
 
-#define NO_SYS 0
-#define LWIP_CALLBACK_API 1
+#define LWIP_CALLBACK_API               1
 
 /*
    ------------------------------------
@@ -93,6 +95,7 @@ a lot of data that needs to be copied, this should be set high. */
 /**
  * MEMP_NUM_NETCONN: the number of struct netconns.
  * (only needed if you use the sequential API, like api_lib.c)
+ * NUM_SOCKETS
  */
 #define MEMP_NUM_NETCONN        8
 
@@ -105,8 +108,6 @@ a lot of data that needs to be copied, this should be set high. */
 #define PBUF_POOL_SIZE          10
 
 /* PBUF_POOL_BUFSIZE: the size of each pbuf in the pbuf pool. */
-//#define PBUF_POOL_BUFSIZE       1536
-/* packet of MT7687 IOT has extra TXD header and packet offset */
 #define PBUF_POOL_BUFSIZE       1664
 
 /**
@@ -130,7 +131,8 @@ a lot of data that needs to be copied, this should be set high. */
 #define TCP_QUEUE_OOSEQ         1
 
 /* TCP Maximum segment size. */
-#define TCP_MSS                 1476
+#define TCP_MSS                 1476/*1476*/
+//#define TCP_OVERSIZE            0
 
 /* TCP sender buffer space (bytes). */
 #define TCP_SND_BUF             (12 * 1024)
@@ -177,11 +179,7 @@ a lot of data that needs to be copied, this should be set high. */
  * PBUF_POOL_SIZE > IP_REASS_MAX_PBUFS so that the stack is still able to receive
  * packets even if the maximum amount of fragments is enqueued for reassembly!
  */
-#if defined(MTK_WIFI_TGN_VERIFY_ENABLE)
-#define IP_REASS_MAX_PBUFS              20
-#else
-#define IP_REASS_MAX_PBUFS              10
-#endif
+#define IP_REASS_MAX_PBUFS      10
 /* ---------- ICMP options ---------- */
 #define ICMP_TTL                255
 
@@ -252,8 +250,17 @@ a lot of data that needs to be copied, this should be set high. */
  */
 #define LWIP_HAVE_LOOPIF                1
 
-#define LWIP_DEBUG 1                     
+
+#define MEM_LIBC_MALLOC                 1
+#define LWIP_TIMEVAL_PRIVATE            0 /* <sys/time.h> in cc.h */ 
+#define LWIP_PROVIDE_ERRNO              1 /* 1 for Legacy Libs OFF */
+
+
+#define LWIP_DEBUG                      1                
+
 #undef LWIP_DBG_MIN_LEVEL
+#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL
+
 #undef ETHARP_DEBUG
 #undef NETIF_DEBUG
 #undef PBUF_DEBUG
@@ -290,7 +297,6 @@ a lot of data that needs to be copied, this should be set high. */
 #undef SNMP_MIB_DEBUG
 #undef DNS_DEBUG
 
-#define LWIP_DBG_MIN_LEVEL              LWIP_DBG_LEVEL_ALL
 #define ETHARP_DEBUG                    LWIP_DBG_OFF
 #define NETIF_DEBUG                     LWIP_DBG_OFF
 #define PBUF_DEBUG                      LWIP_DBG_OFF
@@ -326,18 +332,5 @@ a lot of data that needs to be copied, this should be set high. */
 #define SNMP_MSG_DEBUG                  LWIP_DBG_OFF
 #define SNMP_MIB_DEBUG                  LWIP_DBG_OFF
 #define DNS_DEBUG                       LWIP_DBG_OFF
-
-
-
-#define MEM_LIBC_MALLOC                 1
-#define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
-#define LWIP_TIMEVAL_PRIVATE            0
-
-
-#define __SELECT_NUINT32 2
-typedef int __fd_mask;
-typedef struct {
-	__fd_mask fds_bits[__SELECT_NUINT32];
-} fd_set;
 
 #endif /* __LWIPOPTS_H__ */

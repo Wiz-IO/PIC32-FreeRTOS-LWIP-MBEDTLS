@@ -2,7 +2,7 @@
  * File:   mrf.h
  * Author: Georgi Angelov
  *
- * Created on 28 Август 2018, 10:09
+ * Created on 28.08.2018 10:09
  */
 
 #ifndef MRF_H
@@ -12,15 +12,22 @@
 extern "C" {
 #endif
 
+#include "sys.h"
 #include "mrf_hal.h"
 #include "mrf_osal.h"
+#include "mrf_lib.h"
 
 #define ETH_HEADER_SIZE                         14
-#define MAX_IP_PACKET_SIZE                      1564 // including header
-#define MAX_RX_PACKET_SIZE                      1518
-#define MAX_TX_PACKET_SIZE                      1518
+#define MAX_IP_PACKET_SIZE                      1564 /* including header ??? */
+#define MRF_MAX_PACKET_SIZE                     1518
 #define MAX_MULTICAST_FILTER_SIZE               16
 
+/* for INFRASTRUCTURE  */    
+//#define WDRV_DEFAULT_SSID                       "Comet Guest Room"    
+//#define WDRV_DEFAULT_SSID                       "THE WIZARD"
+    
+//define WDRV_DEFAULT_SSID                       "WizIO PIC32MZ" /* for AP */   
+#define WDRV_DEFAULT_CHANNEL                    5   
 #define WDRV_MAX_CLIENT_TABLE_SLOTS             2
 #define WDRV_SECURITY_OPEN                      0
 #define WDRV_SECURITY_WEP_40                    1
@@ -30,9 +37,11 @@ extern "C" {
 #define WDRV_SECURITY_WPS_PUSH_BUTTON           6    
 #define WDRV_SECURITY_WPS_PIN                   7
 #define WDRV_NETWORK_TYPE_INFRASTRUCTURE        1
-#define WDRV_NETWORK_TYPE_ADHOC                 2 /* TODO: Invalid for now. Validation is TBD. */
-#define WDRV_NETWORK_TYPE_P2P                   3 /* TODO: Invalid for now. Validation is TBD. */
+#define WDRV_NETWORK_TYPE_ADHOC                 2 
+#define WDRV_NETWORK_TYPE_P2P                   3 
 #define WDRV_NETWORK_TYPE_SOFT_AP               4
+#define WDRV_DEFAULT_NETWORK_TYPE               WDRV_NETWORK_TYPE_INFRASTRUCTURE /* <------  */    
+    
 #define WDRV_BSSID_LENGTH                       6
 #define WDRV_MAX_SSID_LENGTH                    32
 #define WDRV_MAX_SECURITY_KEY_LENGTH            64
@@ -41,14 +50,7 @@ extern "C" {
 #define WDRV_DEFAULT_WEP_KEYS_104               "90E96780C739409DA50034FCAA" // default WEP104 key
 #define WDRV_DEFAULT_PSK_PHRASE                 "password" // default WPA-PSK or WPA2-PSK passphrase
 #define WDRV_DEFAULT_WPS_PIN                    "12345678" // default WPS PIN
-#define WDRV_DEFAULT_NETWORK_TYPE               WDRV_NETWORK_TYPE_INFRASTRUCTURE
-#define WDRV_DEFAULT_CHANNEL                    6
-#define WDRV_DEFAULT_SSID                       "Comet Guest Room"
-//"Comet Guest Room"
-//"THE WIZARD"
-//"WizIO PIC32MZ" 
 
-    
 
 typedef struct {
     uint8_t addr[6];
@@ -92,7 +94,7 @@ typedef struct {
 } WDRV_CALLBACKS;
 
 typedef struct __attribute__((__packed__)) {
-    uint32_t verifyFlag; // 0x00000000: empty;    0xffffffff: empty;    0x5a5a5a5a: verified.
+    uint32_t verifyFlag; // 0x00000000: empty; 0xffffffff: empty; 0x5a5a5a5a: verified.
     uint8_t networkType;
     uint8_t ssid[WDRV_MAX_SSID_LENGTH];
     uint8_t ssidLen;
@@ -164,22 +166,11 @@ extern WDRV_SCAN_STATUS g_wdrv_scanStatus;
 #include "lwip/prot/dhcp.h"
 #include "netif/etharp.h"
 
-void WDRV_Config(void);
-void WDRV_Init(void);
-void WDRV_DeInit(void);
-void WDRV_Connect(void);
-bool WDRV_isPacketValid(uint8_t const *const frame);
-void MRF_ClientCacheUpdate(bool connected, uint8_t *mac);
-
 extern struct netif wlan;
-void wifi_config(char * str_ip, char * str_mask, char * str_gw);
-void wifi_receive(struct netif * interface, struct pbuf * pb);
-err_t wifi_send(struct netif * interface, struct pbuf *pb);
-void wifi_set_state(bool state);
+void WIFI_Start(const char * str_ip, const char * str_gw, const char * str_mask);
+void WIFI_waitReady(void);
 
-extern SemaphoreHandle_t wifi_connected;
-extern SemaphoreHandle_t wifi_ip_ready;
-void wifi_begin(int d);
+#include "mrf_api.h"
 
 #ifdef	__cplusplus
 }

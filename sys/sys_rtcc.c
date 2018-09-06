@@ -1,4 +1,7 @@
 /*
+ *  Created on: 30.08.2018
+ *      Author: Georgi Angelov
+ * 
  * PIC32MZ errata sheet
  * 4. Module: Secondary Oscillator
  * A crystal oscillator cannot be used as the input to the Secondary Oscillator (SOSC) pins SOSCI and SOSCO.

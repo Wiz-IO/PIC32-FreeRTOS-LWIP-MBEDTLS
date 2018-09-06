@@ -1,7 +1,6 @@
-/* 
- * File:   mrf_hal.h
- * Author: Georgi Angelov
- * Created on 21 Август 2018, 13:55
+/*
+ *  Created on: 30.08.2018
+ *      Author: Georgi Angelov
  */
 
 #ifndef MRF_HAL_H

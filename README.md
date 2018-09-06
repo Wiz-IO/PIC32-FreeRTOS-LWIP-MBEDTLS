@@ -44,23 +44,9 @@ umm_malloc_cfg.h
 ```
 Linker options: --wrap,malloc --wrap,free
 
-```
-TEST...
-[APP] --- BEGIN ---
-[APP] - DRIVER TEST -
-[APP] - BLINK -
-[MRF] MAC: 001EC03B2D2F
-[MRF] Init Done
-[MRF] WiFi Connecting . . .
-[MRF] ConnectionStateSet( 1 )
-[MRF] ConnectionStateUpdate( 1, 0 )
-[MRF] Connected to AP
-[MRF] ReceiveCB()
-```
+
 
 **LWIP**
-
-*TODO: FD_SETS macros...*
 
 SOCKET TEST...
 ```
@@ -147,7 +133,8 @@ SNTP TEST...
 
 
 **MBEDTLS**
-ready...update soon
+
+Hardware Engine for: MD5 ...
 
 ```
 [MRF] Init Done
@@ -158,13 +145,13 @@ ready...update soon
 [HTTP] Elapsed: 42 mSec
 [HTTP] Received: [APACHE] Hello World ( 03.09.2018 15:04:37 )
 [HTTPS] GET: https://tlstest.paypal.com/
-[HTTPS] Elapsed: 2507 mSec
+[HTTPS] Elapsed: 250 mSec
 [HTTPS] Received: PayPal_Connection_OK
 [HTTPS] GET: https://raw.githubusercon.../LIB/master/test_https
-[HTTPS] Elapsed: 4130 mSec
+[HTTPS] Elapsed: 413 mSec
 [HTTPS] Received: [GITHUB] https test url
 [HTTPS] GET: https://os.mbed.com/media...bed_official/hello.txt
-[HTTPS] Elapsed: 3290 mSec
+[HTTPS] Elapsed: 329 mSec
 [HTTPS] Received: Hello world!
 ```
 

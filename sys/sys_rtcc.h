@@ -2,7 +2,7 @@
  * File:   sys_rtcc.h
  * Author: Georgi Angelov
  *
- * Created on 29 Август 2018, 13:51
+ * Created on 29.08.2018, 13:51
  */
 
 #ifndef SYS_RTCC_H
