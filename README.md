@@ -24,6 +24,8 @@ https://www.microchip.com/DevelopmentTools/ProductDetails/dm320104
 
 **PORTING**
 
+before tests: sys/config.h for WIFI SSID name, wifi driver is not tested with security
+
 ![ScreenShot](https://raw.githubusercontent.com/Wiz-IO/PIC32-FreeRTOS-LWIP-MBEDTLS/master/https.png)
 
 **Board**
@@ -36,17 +38,8 @@ Debug: UART1 (DMA later)
 
 FreeRTOSConfig.h
 port.c - portTICK_PERIOD_MS = 1 msec
-```
-#define portTIMER_PRESCALE	64 /* 1:0, 8:1, 64:2, 256:3 */
-#define portPRESCALE_BITS	2
-```
-umm_malloc_cfg.h 
-```
-#define UMM_MALLOC_CFG__HEAP_SIZE   (configTOTAL_HEAP_SIZE)
-```
+
 Linker options: --wrap,malloc --wrap,free
-
-
 
 **LWIP**
 
@@ -136,7 +129,7 @@ SNTP TEST...
 
 **MBEDTLS**
 
-Hardware Engine for: MD5 ...
+Hardware support for: ALT_MD5 ... ALT_SHA224 is not supported from PIC32, ALT_SHA1 and ALT_SHA256 is not tested "on-air"
 
 ```
 [MRF] Init Done
