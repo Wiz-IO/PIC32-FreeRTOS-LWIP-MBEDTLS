@@ -129,7 +129,11 @@ SNTP TEST...
 
 **MBEDTLS**
 
-Hardware support for: ALT_MD5 ... ALT_SHA224 is not supported from PIC32, ALT_SHA1 and ALT_SHA256 is not tested "on-air"
+Hardware support for: 
+* ALT_MD5 ... 
+* ALT_SHA224 is not supported from PIC32, ALT_SHA1 and ALT_SHA256 is not tested "on-air"
+* ALT_AES (ecb, cdc) 
+* ALT_DES/3 (ecb, cbc in progress)
 
 ```
 [MRF] Init Done
