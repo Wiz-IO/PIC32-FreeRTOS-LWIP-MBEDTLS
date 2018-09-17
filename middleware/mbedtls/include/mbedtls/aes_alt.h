@@ -23,18 +23,20 @@
 #ifndef __AES_ALT_H__
 #define __AES_ALT_H__
 
-#include "hal_aes.h"
-#include "hal_gpt.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef struct
-{
-    unsigned char key[32];
-    size_t key_byte_length;
-}
-mbedtls_aes_context;
+    
+//[WizIO]
+#include "pic32_crypto.h"      
+    
+typedef struct {
+    /* AESNI needs key first, rounds 2nd, not sure why yet */
+    uint32_t key[64 / sizeof(uint32_t)];
+    uint32_t tmp[16 / sizeof(uint32_t)];
+    int keyLen;
+} mbedtls_aes_context;
+
 /**
  * \brief          Initialize AES context
  *

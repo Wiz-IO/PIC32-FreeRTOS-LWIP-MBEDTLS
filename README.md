@@ -7,10 +7,10 @@ https://www.microchip.com/DevelopmentTools/ProductDetails/dm320104
 
 **Software**
 * Compiler MPLAB-X + XC32
-* FreeRTOS v10.1.0 + umm_malloc
+* FreeRTOS v10.1.0 (heap_4.c)
 * lwip v2.0.2
 * mbedtls
-* MRF24WN Driver: at this stage - just to work
+* MRF24WN Driver: at this stage - just to work as client
 * OTHER:
     * cJSON || jsmn
     * RIL (later, ppp for Quectel modules)
@@ -24,22 +24,19 @@ https://www.microchip.com/DevelopmentTools/ProductDetails/dm320104
 
 **PORTING**
 
-before tests: sys/config.h for WIFI SSID name, wifi driver is not tested with security
+before tests: edit sys/config.h for WIFI SSID name, wifi driver is not tested with security
 
 ![ScreenShot](https://raw.githubusercontent.com/Wiz-IO/PIC32-FreeRTOS-LWIP-MBEDTLS/master/https.png)
 
 **Board**
 
-Config board at 200 mips
-
-Debug: UART1 (DMA later)
+* Board run at 200 mips
+* Debug: UART1 (DMA later)
 
 **FreeRTOS**
 
-FreeRTOSConfig.h
-port.c - portTICK_PERIOD_MS = 1 msec
+FreeRTOSConfig.h portTICK_PERIOD_MS is 1 msec
 
-Linker options: --wrap,malloc --wrap,free
 
 **LWIP**
 
@@ -85,55 +82,16 @@ HTTP TEST...
 [HTTP] Data received: [APACHE] Hello World ( 29.08.2018  10:58:35 )
 ```
 
-PING TEST...
-```
-[APP] - BEGIN -
-[APP] - PING TEST -
-[APP] - BLINK -
-[MRF] MAC: 001EC03B2D2F
-[MRF] Init Done
-[MRF] WIFI Connecting . . .
-[MRF] WIFI Connected to AP
-[APP] WIFI READY
-[PING-I]: ping: send seq(0x0001) 172.217.169.110
-[PING-I]: ping: recv seq(0x0001) 172.217.169.110, 20 ms
-.........
-[PING-I]: 172.217.169.110, Packets: Sent = 3, Received =1, Lost = 2 (66% loss)
-[PING-I]:  Packets: min = 20, max =20, avg = 6
-```
-
-SNTP TEST...
-```
-[APP] - BEGIN -
-[APP] - SNTP TEST -
-[APP] - BLINK -
-[MRF] MAC: 001EC03B2D2F
-[MRF] Init Done
-[MRF] WIFI Connecting . . .
-[MRF] WIFI Connected to AP
-[APP] WIFI READY
-[SNTP]: sntp_request: current server address is 87.97.157.120
-[SNTP]: sntp_send_request: Sending request to server
-[SNTP]: sntp_set_system_time input:  1535541550 s,0 us
-[SNTP]: sntp(3 7 29 
-[SNTP]: 11:19:10 118)
-[SNTP]: sntp(atx):(0:240)
-[SNTP]: sntp st1(0)
-[SNTP]: sntp(3  8  29 
-[SNTP]: 11:19:10 18)
-[SNTP]: sntp st2(0)
-[SNTP]: sntp_process: Wed Aug 29 11:19:10 2018
-[SNTP]: sntp_recv: Scheduled next time request: 3600000 ms
-```
-
 
 **MBEDTLS**
 
-Hardware support for: 
+Software crypto full
+Hardware crypto - tested with this project 
 * ALT_MD5
-* ALT_SHA224 is not supported from PIC32, ALT_SHA1 and ALT_SHA256 is not tested "on-air"
+* ALT_SHA1/256 (SHA224 is not supported from PIC32)
 * ALT_AES (ecb, cbc) 
-* ALT_DES/3 (ecb, cbc in progress)
+* ALT_DES/3 (ecb, cbc)
+* Enable engine from - middleware\mbedtls\configs\config-pic32-basic.h  bottom at the file
 
 ```
 [MRF] Init Done

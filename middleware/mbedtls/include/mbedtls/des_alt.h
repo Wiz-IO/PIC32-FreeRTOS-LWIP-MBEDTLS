@@ -23,27 +23,22 @@
 #ifndef __DES_ALT_H__
 #define __DES_ALT_H__
 
-#include "hal_des.h"
-#include "hal_gpt.h"
+//[WizIO]
+#include "pic32_crypto.h" 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct
-{
-     unsigned char key[MBEDTLS_DES_KEY_SIZE];
-     int mode;
-}
-mbedtls_des_context;
-
-typedef struct
-{
-    unsigned char key[MBEDTLS_DES_KEY_SIZE * 3];
-    size_t key_byte_length;
+typedef struct{
+    uint32_t key[32 / sizeof(uint32_t)];  
+    uint32_t tmp[8 / sizeof(uint32_t)];
+    size_t keyLen;
     int mode;
-}
-mbedtls_des3_context;
+} mbedtls_des_context;
+
+typedef mbedtls_des_context mbedtls_des3_context;
+
 /**
  * \brief          Initialize DES context
  *

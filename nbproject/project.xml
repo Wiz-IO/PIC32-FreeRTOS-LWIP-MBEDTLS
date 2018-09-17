@@ -6,7 +6,7 @@
             <name>WizIO32</name>
             <creation-uuid>0cca0683-3ca0-4816-b54a-49418789d533</creation-uuid>
             <make-project-type>0</make-project-type>
-            <c-extensions>c,S</c-extensions>
+            <c-extensions>c</c-extensions>
             <cpp-extensions/>
             <header-extensions>h</header-extensions>
             <asminc-extensions/>

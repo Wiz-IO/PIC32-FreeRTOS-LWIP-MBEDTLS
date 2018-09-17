@@ -435,9 +435,9 @@ int mbedtls_sha1_self_test( int verbose )
                 mbedtls_printf( "failed\n" );
 
             ret = 1;
-            goto exit;
+            //goto exit;
         }
-
+        else
         if( verbose != 0 )
             mbedtls_printf( "passed\n" );
     }

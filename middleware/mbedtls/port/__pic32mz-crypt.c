@@ -1,6 +1,6 @@
 /* pic32mz-crypt.c
  *
- * Copyright (C) 2006-2017 wolfSSL Inc.
+ * Copyright (C) 2006-2016 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -19,18 +19,39 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
  */
 
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "pic32mz-crypt.h"
+#include "osal.h"
 
-#ifdef WOLFSSL_MICROCHIP_PIC32MZ
+#ifdef CRYPTO_MICROCHIP_PIC32MZ
 
-#ifdef WOLFSSL_PIC32MZ_CRYPT
-#endif
+#if defined(CRYPTO_PIC32MZ_CRYPT) || defined(CRYPTO_PIC32MZ_HASH)
 
-#ifdef WOLFSSL_PIC32MZ_HASH
-#endif
+static SemaphoreHandle_t crypto_mutex = NULL;
 
+static int crypto_mutex_lock(void) {
+    int state = xTaskGetSchedulerState();
+    if (taskSCHEDULER_NOT_STARTED == state) return 0; // FOR SELF TEST in main()
 
-#if defined(WOLFSSL_PIC32MZ_CRYPT) || defined(WOLFSSL_PIC32MZ_HASH) 
+    if (NULL == crypto_mutex)
+        crypto_mutex = xSemaphoreCreateMutex();
+    if (crypto_mutex && state == taskSCHEDULER_RUNNING)
+        return pdTRUE == xSemaphoreTake(crypto_mutex, portMAX_DELAY) ? 0 : OSAL_E;
+    return OSAL_E;
+}
+
+static int crypto_mutex_unlock(void) {
+    int state = xTaskGetSchedulerState();
+    if (taskSCHEDULER_NOT_STARTED == state) return 0; // FOR SELF TEST in main()
+
+    if (crypto_mutex && state == taskSCHEDULER_RUNNING)
+        return pdTRUE == xSemaphoreGive(crypto_mutex) ? 0 : OSAL_E;
+    return OSAL_E;
+}
 
 inline __attribute__((always_inline)) word32 rotlFixed(word32 x, word32 y) {
     return (x << y) | (x >> (sizeof (y) * 8 - y));
@@ -45,11 +66,10 @@ inline __attribute__((always_inline)) word32 ByteReverseWord32(word32 value) {
     return rotlFixed(value, 16U);
 }
 
-void ByteReverseWords(word32* out, const word32* in, word32 byteCount) {
+static void ByteReverseWords(word32* out, const word32* in, word32 byteCount) {
     word32 count = byteCount / (word32)sizeof (word32), i;
     for (i = 0; i < count; i++)
         out[i] = ByteReverseWord32(in[i]);
-
 }
 
 static int Pic32GetBlockSize(int algo) {
@@ -72,13 +92,41 @@ static int Pic32GetBlockSize(int algo) {
     return 0;
 }
 
-static int Pic32Crypto(const byte* in, int inLen, word32* out, int outLen,
-        int dir, int algo, int cryptoalgo,
+static int Pic32CryptoEngine(volatile bufferDescriptor * pBD) {
+    int ret, timeout = 0xFFFFFF;
+    ret = crypto_mutex_lock();
+    if (0 == ret) {
+        /* Software Reset the Crypto Engine */
+        CECON = 1 << 6;
+        while (CECON);
+        /* Clear the interrupt flags */
+        CEINTSRC = 0xF;
+        /* Run the engine */
+        CEBDPADDR = (unsigned int) KVA_TO_PA(pBD);
+        CEINTEN = 0x07; /* enable DMA Packet Completion Interrupt */
+        /* input swap, enable BD fetch and start DMA */
+#if PIC32_NO_OUT_SWAP
+        CECON = 0x25;
+#else
+        CECON = 0xa5; /* bit 7 = enable out swap */
+#endif
+        /* wait for operation to complete */
+        while (CEINTSRCbits.PKTIF == 0 && --timeout > 0);
+        /* Clear the interrupt flags */
+        CEINTSRC = 0xF;
+        /* check for errors */
+        if (CESTATbits.ERROP || timeout <= 0) 
+            ret = ASYNC_OP_E;
+        crypto_mutex_unlock();
+    }
+    return ret;
+}
 
+//static 
+int Pic32Crypto(const byte* in, int inLen, word32* out, int outLen, int dir, int algo, int cryptoalgo,
         /* For DES/AES only */
         word32* key, int keyLen, word32* iv, int ivLen) {
     int ret = 0;
-    int blockSize = Pic32GetBlockSize(algo);
     volatile bufferDescriptor bd __attribute__((aligned(8)));
     securityAssociation sa __attribute__((aligned(8)));
     securityAssociation *sa_p;
@@ -87,31 +135,22 @@ static int Pic32Crypto(const byte* in, int inLen, word32* out, int outLen,
     byte *out_p;
     word32* dst;
     word32 padRemain;
-    int timeout = 0xFFFFFF;
-
     /* check args */
-    if (in == NULL || inLen <= 0 || out == NULL || blockSize == 0) {
+    if (in == NULL || inLen <= 0 || out == NULL || Pic32GetBlockSize(algo) == 0) 
         return BAD_FUNC_ARG;
-    }
-
     /* check pointer alignment - must be word aligned */
-    if (((size_t) in % sizeof (word32)) || ((size_t) out % sizeof (word32))) {
+    if (((size_t) in % sizeof (word32)) || ((size_t) out % sizeof (word32)))
         return BUFFER_E; /* buffer is not aligned */
-    }
-
     /* get uncached address */
     sa_p = KVA0_TO_KVA1(&sa);
     bd_p = KVA0_TO_KVA1(&bd);
     out_p = KVA0_TO_KVA1(out);
     in_p = KVA0_TO_KVA1(in);
-
     /* Sync cache if in physical memory (not flash) */
-    if (PIC32MZ_IF_RAM(in_p)) {
-        XMEMCPY(in_p, in, inLen);
-    }
-
+    if (PIC32MZ_IF_RAM(in_p))
+        memcpy(in_p, in, inLen);
     /* Set up the Security Association */
-    XMEMSET(sa_p, 0, sizeof (sa));
+    memset(sa_p, 0, sizeof (sa));
     sa_p->SA_CTRL.ALGO = algo;
     sa_p->SA_CTRL.ENCTYPE = dir;
     sa_p->SA_CTRL.FB = 1; /* first block */
@@ -119,7 +158,6 @@ static int Pic32Crypto(const byte* in, int inLen, word32* out, int outLen,
     if (key) {
         /* cipher */
         sa_p->SA_CTRL.CRYPTOALGO = cryptoalgo;
-
         switch (keyLen) {
             case 32:
                 sa_p->SA_CTRL.KEYSIZE = PIC32_KEYSIZE_256;
@@ -132,34 +170,26 @@ static int Pic32Crypto(const byte* in, int inLen, word32* out, int outLen,
                 sa_p->SA_CTRL.KEYSIZE = PIC32_KEYSIZE_128;
                 break;
         }
-
-        dst = (word32*) KVA0_TO_KVA1(sa.SA_ENCKEY +
-                (sizeof (sa.SA_ENCKEY) / sizeof (word32)) - (keyLen / sizeof (word32)));
+        dst = (word32*) KVA0_TO_KVA1(sa.SA_ENCKEY + (sizeof (sa.SA_ENCKEY) / sizeof (word32)) - (keyLen / sizeof (word32)));
         ByteReverseWords(dst, key, keyLen);
-
         if (iv && ivLen > 0) {
             sa_p->SA_CTRL.LOADIV = 1;
-            dst = (word32*) KVA0_TO_KVA1(sa.SA_ENCIV +
-                    (sizeof (sa.SA_ENCIV) / sizeof (word32)) - (ivLen / sizeof (word32)));
+            dst = (word32*) KVA0_TO_KVA1(sa.SA_ENCIV + (sizeof (sa.SA_ENCIV) / sizeof (word32)) - (ivLen / sizeof (word32)));
             ByteReverseWords(dst, iv, ivLen);
         }
     } else {
         /* hashing */
         sa_p->SA_CTRL.LOADIV = 1;
         sa_p->SA_CTRL.IRFLAG = 0; /* immediate result for hashing */
-
-        dst = (word32*) KVA0_TO_KVA1(sa.SA_AUTHIV +
-                (sizeof (sa.SA_AUTHIV) / sizeof (word32)) - (outLen / sizeof (word32)));
+        dst = (word32*) KVA0_TO_KVA1(sa.SA_AUTHIV + (sizeof (sa.SA_AUTHIV) / sizeof (word32)) - (outLen / sizeof (word32)));
         ByteReverseWords(dst, out, outLen);
     }
-
     /* Set up the Buffer Descriptor */
-    XMEMSET(bd_p, 0, sizeof (bd));
+    memset(bd_p, 0, sizeof (bd));
     bd_p->BD_CTRL.BUFLEN = inLen;
     padRemain = (inLen % 4); /* make sure buffer is 4-byte multiple */
-    if (padRemain != 0) {
+    if (padRemain != 0) 
         bd_p->BD_CTRL.BUFLEN += (4 - padRemain);
-    }
     bd_p->BD_CTRL.SA_FETCH_EN = 1; /* Fetch the security association */
     bd_p->BD_CTRL.PKT_INT_EN = 1; /* enable interrupt */
     bd_p->BD_CTRL.LAST_BD = 1; /* last buffer desc in chain */
@@ -169,7 +199,7 @@ static int Pic32Crypto(const byte* in, int inLen, word32* out, int outLen,
     if (key) {
         /* cipher */
         if (in != (byte*) out)
-            XMEMSET(out_p, 0, outLen); /* clear output buffer */
+            memset(out_p, 0, outLen); /* clear output buffer */
         bd_p->DSTADDR = (unsigned int) KVA_TO_PA(out);
     } else {
         /* hashing */
@@ -179,95 +209,35 @@ static int Pic32Crypto(const byte* in, int inLen, word32* out, int outLen,
     bd_p->NXTPTR = (unsigned int) KVA_TO_PA(&bd);
     bd_p->MSGLEN = inLen; /* actual message size */
     bd_p->BD_CTRL.DESC_EN = 1; /* enable this descriptor */
-
-    /* begin access to hardware */
-    ret = wolfSSL_CryptHwMutexLock();
-    if (ret == 0) {
-        /* Software Reset the Crypto Engine */
-        CECON = 1 << 6;
-        while (CECON);
-
-        /* Clear the interrupt flags */
-        CEINTSRC = 0xF;
-
-        /* Run the engine */
-        CEBDPADDR = (unsigned int) KVA_TO_PA(&bd);
-        CEINTEN = 0x07; /* enable DMA Packet Completion Interrupt */
-
-        /* input swap, enable BD fetch and start DMA */
-#if PIC32_NO_OUT_SWAP
-        CECON = 0x25;
-#else
-        CECON = 0xa5; /* bit 7 = enable out swap */
-#endif
-
-        /* wait for operation to complete */
-        while (CEINTSRCbits.PKTIF == 0 && --timeout > 0) {
-        };
-
-        /* Clear the interrupt flags */
-        CEINTSRC = 0xF;
-
-        /* check for errors */
-        if (CESTATbits.ERROP || timeout <= 0) {
-#if 0
-            printf("PIC32 Crypto: ERROP %x, ERRPHASE %x, TIMEOUT %s\n",
-                    CESTATbits.ERROP, CESTATbits.ERRPHASE, timeout <= 0 ? "yes" : "no");
-#endif
-            ret = ASYNC_OP_E;
-        }
-
-        wolfSSL_CryptHwMutexUnLock();
-
-        if (iv && ivLen > 0) {
-            /* set iv for the next call */
-            if (dir == PIC32_ENCRYPTION) {
-                XMEMCPY(iv, KVA0_TO_KVA1(out + (outLen - ivLen)), ivLen);
+    if (Pic32CryptoEngine(&bd)) return ASYNC_OP_E;
+    if (iv && ivLen > 0) {
+        /* set iv for the next call */
+        if (dir == PIC32_ENCRYPTION) {
+            memcpy(iv, KVA0_TO_KVA1(out + (outLen - ivLen)), ivLen);
 #if !PIC32_NO_OUT_SWAP
-                /* hardware already swapped output, so we need to swap back */
-                ByteReverseWords(iv, iv, ivLen);
+            /* hardware already swapped output, so we need to swap back */
+            ByteReverseWords(iv, iv, ivLen);
 #endif
-            } else {
-                ByteReverseWords(iv, KVA0_TO_KVA1(in + (inLen - ivLen)), ivLen);
-            }
+        } else {
+            ByteReverseWords(iv, KVA0_TO_KVA1(in + (inLen - ivLen)), ivLen);
         }
-
-        /* copy result to output */
-#if PIC32_NO_OUT_SWAP
-        /* swap bytes */
-        ByteReverseWords(out, (word32*) out_p, outLen);
-#elif defined(_SYS_DEVCON_LOCAL_H)
-        /* sync cache */
-        SYS_DEVCON_DataCacheInvalidate((word32) out, outLen);
-#else
-        XMEMCPY(out, out_p, outLen);
-#endif
     }
-
+    /* copy result to output */
+#if PIC32_NO_OUT_SWAP
+    /* swap bytes */
+    ByteReverseWords(out, (word32*) out_p, outLen);
+#elif defined(_SYS_DEVCON_LOCAL_H)
+    /* sync cache */
+    SYS_DEVCON_DataCacheInvalidate((word32) out, outLen);
+#else
+    memcpy(out, out_p, outLen);
+#endif
     return ret;
 }
-#endif /* WOLFSSL_PIC32MZ_CRYPT || WOLFSSL_PIC32MZ_HASH */
 
+#endif /* CRYPTO_PIC32MZ_CRYPT || CRYPTO_PIC32MZ_HASH */
 
-#ifdef WOLFSSL_PIC32MZ_HASH
-
-#ifdef WOLFSSL_PIC32MZ_LARGE_HASH
-
-/* tunable large hash block size */
-#ifndef PIC32_BLOCK_SIZE
-#define PIC32_BLOCK_SIZE 256
-#endif
-
-#define PIC32MZ_MIN_BLOCK    64
-#define PIC32MZ_MAX_BLOCK    (32*1024)
-
-#ifndef PIC32MZ_MAX_BD
-#define PIC32MZ_MAX_BD   2
-#endif
-
-#if PIC32_BLOCK_SIZE < PIC32MZ_MIN_BLOCK
-#error Encryption block size must be at least 64 bytes.
-#endif
+#ifdef CRYPTO_PIC32MZ_HASH
 
 /* Crypt Engine descriptor */
 typedef struct {
@@ -284,30 +254,23 @@ typedef struct {
 static pic32mz_desc gLHDesc;
 static uint8_t gLHDataBuf[PIC32MZ_MAX_BD][PIC32_BLOCK_SIZE] __attribute__((aligned(4), coherent));
 
-void reset_engine(pic32mz_desc *desc, int algo) {
+static void reset_engine(pic32mz_desc *desc, int algo) {
     int i;
     pic32mz_desc* uc_desc = KVA0_TO_KVA1(desc);
-
-    wolfSSL_CryptHwMutexLock();
-
     /* Software reset */
     CECON = 1 << 6;
     while (CECON);
-
     /* Clear the interrupt flags */
     CEINTSRC = 0xF;
-
     /* Make sure everything is clear first before we setup */
     XMEMSET(desc, 0, sizeof (pic32mz_desc));
     XMEMSET((void *) &uc_desc->sa, 0, sizeof (uc_desc->sa));
-
     /* Set up the Security Association */
     uc_desc->sa.SA_CTRL.ALGO = algo;
     uc_desc->sa.SA_CTRL.LNC = 1;
     uc_desc->sa.SA_CTRL.FB = 1;
     uc_desc->sa.SA_CTRL.ENCTYPE = 1;
     uc_desc->sa.SA_CTRL.LOADIV = 1;
-
     /* Set up the Buffer Descriptor */
     uc_desc->err = 0;
     for (i = 0; i < PIC32MZ_MAX_BD; i++) {
@@ -329,9 +292,7 @@ void reset_engine(pic32mz_desc *desc, int algo) {
     desc->msgSize = 0;
     desc->processed = 0;
     CEBDPADDR = KVA_TO_PA(&(desc->bd[0]));
-
     CEPOLLCON = 10;
-
 #if PIC32_NO_OUT_SWAP
     CECON = 0x27;
 #else
@@ -339,13 +300,10 @@ void reset_engine(pic32mz_desc *desc, int algo) {
 #endif
 }
 
-static void update_engine(pic32mz_desc *desc, const byte *input, word32 len,
-        word32 *hash) {
+static void update_engine(pic32mz_desc *desc, const byte *input, word32 len, word32 *hash) {
     int total;
     pic32mz_desc *uc_desc = KVA0_TO_KVA1(desc);
-
     uc_desc->bd[desc->currBd].UPDPTR = KVA_TO_PA(hash);
-
     /* Add the data to the current buffer. If the buffer fills, start processing it
        and fill the next one. */
     while (len) {
@@ -369,8 +327,7 @@ static void update_engine(pic32mz_desc *desc, const byte *input, word32 len,
             desc->dbPtr = 0;
         }
         if (!PIC32MZ_IF_RAM(input)) {
-            /* If we're inputting from flash, let the BD have
-               the address and max the buffer size */
+            /* If we're inputting from flash, let the BD have the address and max the buffer size */
             uc_desc->bd[desc->currBd].SRCADDR = KVA_TO_PA(input);
             total = (len > PIC32MZ_MAX_BLOCK ? PIC32MZ_MAX_BLOCK : len);
             desc->dbPtr = total;
@@ -398,7 +355,6 @@ static void start_engine(pic32mz_desc *desc) {
     /* Wrap up the last buffer descriptor and enable it */
     int bufferLen;
     pic32mz_desc *uc_desc = KVA0_TO_KVA1(desc);
-
     bufferLen = desc->dbPtr;
     if (bufferLen % 4)
         bufferLen = (bufferLen + 4) - (bufferLen % 4);
@@ -412,14 +368,12 @@ void wait_engine(pic32mz_desc *desc, char *hash, int hash_sz) {
     int i;
     pic32mz_desc *uc_desc = KVA0_TO_KVA1(desc);
     unsigned int engineRunning;
-
     do {
         engineRunning = 0;
         for (i = 0; i < PIC32MZ_MAX_BD; i++) {
             engineRunning = engineRunning || uc_desc->bd[i].BD_CTRL.DESC_EN;
         }
     } while (engineRunning);
-
 #if PIC32_NO_OUT_SWAP
     /* swap bytes */
     ByteReverseWords(hash, KVA0_TO_KVA1(hash), hash_sz);
@@ -427,17 +381,13 @@ void wait_engine(pic32mz_desc *desc, char *hash, int hash_sz) {
     /* copy output - hardware already swapped */
     XMEMCPY(hash, KVA0_TO_KVA1(hash), hash_sz);
 #endif
-
-    wolfSSL_CryptHwMutexUnLock();
 }
 
-#endif /* WOLFSSL_PIC32MZ_LARGE_HASH */
-
-int wc_Pic32Hash(const byte* in, int inLen, word32* out, int outLen, int algo) {
+int Pic32Hash(const byte* in, int inLen, word32* out, int outLen, int algo) {
     return Pic32Crypto(in, inLen, out, outLen, PIC32_ENCRYPTION, algo, 0, NULL, 0, NULL, 0);
 }
 
-int wc_Pic32HashCopy(hashUpdCache* src, hashUpdCache* dst) {
+int Pic32HashCopy(hashUpdCache* src, hashUpdCache* dst) {
     /* mark destination as copy, so cache->buf is not free'd */
     if (dst) {
         dst->isCopy = 1;
@@ -445,13 +395,14 @@ int wc_Pic32HashCopy(hashUpdCache* src, hashUpdCache* dst) {
     return 0;
 }
 
-static int wc_Pic32HashUpdate(hashUpdCache* cache, byte* stdBuf, int stdBufLen, word32* digest, int digestSz, const byte* data, int len, int algo, void* heap) {
+static int Pic32HashUpdate(hashUpdCache* cache, byte* stdBuf, int stdBufLen,
+        word32* digest, int digestSz, const byte* data, int len, int algo, void* heap) {
     int ret = 0;
     word32 newLenUpd, newLenPad, padRemain;
     byte* newBuf;
     int isNewBuf = 0;
 
-#ifdef WOLFSSL_PIC32MZ_LARGE_HASH
+#ifdef CRYPTO_PIC32MZ_LARGE_HASH
     /* if final length is set then pass straight to hardware */
     if (cache->finalLen) {
         if (cache->bufLen == 0) {
@@ -467,7 +418,6 @@ static int wc_Pic32HashUpdate(hashUpdCache* cache, byte* stdBuf, int stdBufLen, 
     /* cache updates */
     /* calculate new len */
     newLenUpd = cache->updLen + len;
-    LOG("C:%d L:%d\n", cache->updLen, len);
 
     /* calculate padded len - pad buffer at 64-bytes for hardware */
     newLenPad = newLenUpd;
@@ -489,10 +439,7 @@ static int wc_Pic32HashUpdate(hashUpdCache* cache, byte* stdBuf, int stdBufLen, 
                 cache->buf = NULL;
                 cache->updLen = cache->bufLen = 0;
             }
-            LOG("ERROR: ", newLenPad);
             return MEMORY_E;
-        } else {
-            LOG("M: %d\n", newLenPad);
         }
         isNewBuf = 1;
         cache->isCopy = 0; /* no longer using copy buffer */
@@ -513,16 +460,13 @@ static int wc_Pic32HashUpdate(hashUpdCache* cache, byte* stdBuf, int stdBufLen, 
     return ret;
 }
 
-static int wc_Pic32HashFinal(hashUpdCache* cache, byte* stdBuf,
-        word32* digest, byte* hash, int digestSz, int algo, void* heap) {
+int Pic32HashFinal(hashUpdCache* cache, byte* stdBuf, word32* digest, byte* hash, int digestSz, int algo, void* heap) {
     int ret = 0;
-
     /* if room add the pad */
     if (cache->buf && cache->updLen < cache->bufLen) {
         cache->buf[cache->updLen] = 0x80;
     }
-
-#ifdef WOLFSSL_PIC32MZ_LARGE_HASH
+#ifdef CRYPTO_PIC32MZ_LARGE_HASH
     if (cache->finalLen) {
         start_engine(&gLHDesc);
         wait_engine(&gLHDesc, (char*) digest, digestSz);
@@ -536,287 +480,185 @@ static int wc_Pic32HashFinal(hashUpdCache* cache, byte* stdBuf,
             switch (algo) {
                 case PIC32_ALGO_SHA256:
                 {
-                    const char* sha256EmptyHash =
-                            "\xe3\xb0\xc4\x42\x98\xfc\x1c\x14\x9a\xfb\xf4\xc8\x99\x6f\xb9"
-                            "\x24\x27\xae\x41\xe4\x64\x9b\x93\x4c\xa4\x95\x99\x1b\x78\x52"
-                            "\xb8\x55";
+                    const char* sha256EmptyHash = "\xe3\xb0\xc4\x42\x98\xfc\x1c\x14\x9a\xfb\xf4\xc8\x99\x6f\xb9\x24\x27\xae\x41\xe4\x64\x9b\x93\x4c\xa4\x95\x99\x1b\x78\x52\xb8\x55";
                     XMEMCPY(hash, sha256EmptyHash, digestSz);
                     break;
                 }
                 case PIC32_ALGO_SHA1:
                 {
-                    const char* shaEmptyHash =
-                            "\xda\x39\xa3\xee\x5e\x6b\x4b\x0d\x32\x55\xbf\xef\x95\x60\x18"
-                            "\x90\xaf\xd8\x07\x09";
+                    const char* shaEmptyHash = "\xda\x39\xa3\xee\x5e\x6b\x4b\x0d\x32\x55\xbf\xef\x95\x60\x18\x90\xaf\xd8\x07\x09";
                     XMEMCPY(hash, shaEmptyHash, digestSz);
                     break;
                 }
                 case PIC32_ALGO_MD5:
                 {
-                    const char* md5EmptyHash =
-                            "\xd4\x1d\x8c\xd9\x8f\x00\xb2\x04\xe9\x80\x09\x98\xec\xf8\x42"
-                            "\x7e";
+                    const char* md5EmptyHash = "\xd4\x1d\x8c\xd9\x8f\x00\xb2\x04\xe9\x80\x09\x98\xec\xf8\x42\x7e";
                     XMEMCPY(hash, md5EmptyHash, digestSz);
                     break;
                 }
             } /* switch */
         } else {
-            ret = wc_Pic32Hash(cache->buf, cache->updLen, digest, digestSz, algo);
+            ret = Pic32Hash(cache->buf, cache->updLen, digest, digestSz, algo);
             if (ret == 0) {
                 XMEMCPY(hash, digest, digestSz);
+            } else {
+                LOG("[ERROR] %s() %d\n", __FUNCTION__, ret);
             }
         }
 
-
+        if (cache->buf && cache->buf != stdBuf && !cache->isCopy) {
+            XFREE(cache->buf, heap, DYNAMIC_TYPE_HASH_TMP);
+        }
     }
-
-    //[WizIO]
-    if (cache->buf && cache->buf != stdBuf && !cache->isCopy) {
-        XFREE(cache->buf, heap, DYNAMIC_TYPE_HASH_TMP);
-    }
-
     cache->buf = NULL;
     cache->bufLen = cache->updLen = 0;
     return ret;
 }
 
-/* API's for compatability with Harmony wrappers - not used */
 #ifndef NO_MD5
 
-int wc_InitMd5_ex(Md5* md5, void* heap, int devId) {
-    (void) heap;
-    (void) devId;
+void Md5Start(Md5* md5) {
     if (md5 == NULL)
-        return BAD_FUNC_ARG;
-    XMEMSET(md5, 0, sizeof (Md5));
+        return;
     reset_engine(&gLHDesc, PIC32_ALGO_MD5);
-    return 0;
 }
 
-int wc_Md5Update(Md5* md5, const byte* data, word32 len) {
+void Md5Update(Md5* md5, const byte* data, word32 len) {
     if (md5 == NULL || (data == NULL && len > 0))
-        return BAD_FUNC_ARG;
-    return wc_Pic32HashUpdate(&md5->cache, (byte*) md5->buffer, sizeof (md5->buffer), md5->digest, MD5_DIGEST_SIZE, data, len, PIC32_ALGO_MD5, md5->heap);
+        return;
+    int ret = Pic32HashUpdate(&md5->cache, (byte*) md5->buffer,
+            sizeof (md5->buffer), md5->digest, MD5_DIGEST_SIZE,
+            data, len, PIC32_ALGO_MD5, NULL);
+    if (ret) {
+        LOG("[ERROR] %s() %d\n", __FUNCTION__, ret);
+    }
 }
 
-int wc_Md5Final(Md5* md5, byte* hash) {
-    int ret;
+void Md5Final(Md5* md5, byte* hash) {
     if (md5 == NULL || hash == NULL)
-        return BAD_FUNC_ARG;
-    ret = wc_Pic32HashFinal(&md5->cache, (byte*) md5->buffer, md5->digest, hash, MD5_DIGEST_SIZE, PIC32_ALGO_MD5, md5->heap);
-    wc_InitMd5_ex(md5, md5->heap, INVALID_DEVID); /* reset state */
-    return ret;
+        return;
+    int ret = Pic32HashFinal(&md5->cache, (byte*) md5->buffer,
+            md5->digest, hash, MD5_DIGEST_SIZE,
+            PIC32_ALGO_MD5, NULL);
+    if (ret) {
+        LOG("[ERROR] %s() %d\n", __FUNCTION__, ret);
+    }
 }
 
 #endif /* !NO_MD5 */
-
-
-
 #ifndef NO_SHA
 
-int wc_InitSha_ex(Sha* sha, void* heap, int devId) {
-    (void) heap;
-    (void) devId;
+void ShaStart(Sha* sha) {
     if (sha == NULL)
-        return BAD_FUNC_ARG;
-    XMEMSET(sha, 0, sizeof (Sha));
+        return;
     reset_engine(&gLHDesc, PIC32_ALGO_SHA1);
-    return 0;
 }
 
-int wc_ShaUpdate(Sha* sha, const byte* data, word32 len) {
+void ShaUpdate(Sha* sha, const byte* data, word32 len) {
     if (sha == NULL || (data == NULL && len > 0))
-        return BAD_FUNC_ARG;
-    return wc_Pic32HashUpdate(&(sha->cache), (byte*) sha->buffer, sizeof (sha->buffer), sha->digest, SHA_DIGEST_SIZE, data, len, PIC32_ALGO_SHA1, NULL);
+        return;
+    int ret = Pic32HashUpdate(&sha->cache, (byte*) sha->buffer,
+            sizeof (sha->buffer), sha->digest, SHA_DIGEST_SIZE,
+            data, len, PIC32_ALGO_SHA1, NULL);
+    if (ret) {
+        LOG("[ERROR] %s() %d\n", __FUNCTION__, ret);
+    }
 }
 
-int wc_ShaFinal(Sha* sha, byte* hash) {
-    int ret;
+void ShaFinal(Sha* sha, byte* hash) {
     if (sha == NULL || hash == NULL)
-        return BAD_FUNC_ARG;
-    ret = wc_Pic32HashFinal(&(sha->cache), (byte*) sha->buffer, sha->digest, hash, SHA_DIGEST_SIZE, PIC32_ALGO_SHA1, NULL);
-    wc_InitSha_ex(sha, sha->heap, INVALID_DEVID); /* reset state */
-    return ret;
+        return;
+    int ret = Pic32HashFinal(&sha->cache, (byte*) sha->buffer,
+            sha->digest, hash, SHA_DIGEST_SIZE,
+            PIC32_ALGO_SHA1, NULL);
+    if (ret) {
+        LOG("[ERROR] %s() %d\n", __FUNCTION__, ret);
+    }
 }
 
 #endif /* !NO_SHA */
 #ifndef NO_SHA256
 
-int wc_InitSha256_ex(Sha256* sha256, void* heap, int devId) {
-    (void) heap;
-    (void) devId;
+void Sha256Start(Sha256* sha256) {
     if (sha256 == NULL)
-        return BAD_FUNC_ARG;
-    XMEMSET(sha256, 0, sizeof (Sha256));
+        return;
     reset_engine(&gLHDesc, PIC32_ALGO_SHA256);
-    return 0;
 }
 
-int wc_Sha256Update(Sha256* sha256, const byte* data, word32 len) {
+void Sha256Update(Sha256* sha256, const byte* data, word32 len) {
     if (sha256 == NULL || (data == NULL && len > 0))
-        return BAD_FUNC_ARG;
-    return wc_Pic32HashUpdate(&sha256->cache, (byte*) sha256->buffer, sizeof (sha256->buffer), sha256->digest, SHA256_DIGEST_SIZE, data, len, PIC32_ALGO_SHA256, NULL);
+        return;
+    int ret = Pic32HashUpdate(&sha256->cache, (byte*) sha256->buffer,
+            sizeof (sha256->buffer), sha256->digest, SHA256_DIGEST_SIZE,
+            data, len, PIC32_ALGO_SHA256, NULL);
+    if (ret) {
+        LOG("[ERROR] %s() %d\n", __FUNCTION__, ret);
+    }
 }
 
-int wc_Sha256Final(Sha256* sha256, byte* hash) {
-    int ret;
+void Sha256Final(Sha256* sha256, byte* hash) {
     if (sha256 == NULL || hash == NULL)
-        return BAD_FUNC_ARG;
-    ret = wc_Pic32HashFinal(&sha256->cache, (byte*) sha256->buffer, sha256->digest, hash, SHA256_DIGEST_SIZE, PIC32_ALGO_SHA256, sha256->heap);
-    wc_InitSha256_ex(sha256, sha256->heap, INVALID_DEVID); /* reset state */
-    return ret;
+        return;
+    int ret = Pic32HashFinal(&sha256->cache, (byte*) sha256->buffer,
+            sha256->digest, hash, SHA256_DIGEST_SIZE,
+            PIC32_ALGO_SHA256, NULL);
+    if (ret) {
+        LOG("[ERROR] %s() %d\n", __FUNCTION__, ret);
+    }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-int wc_InitSha224(Sha224* sha224) {
-    int ret = 0;
-    if (sha224 == NULL)
-        return BAD_FUNC_ARG;
-    sha224->digest[0] = 0xc1059ed8;
-    sha224->digest[1] = 0x367cd507;
-    sha224->digest[2] = 0x3070dd17;
-    sha224->digest[3] = 0xf70e5939;
-    sha224->digest[4] = 0xffc00b31;
-    sha224->digest[5] = 0x68581511;
-    sha224->digest[6] = 0x64f98fa7;
-    sha224->digest[7] = 0xbefa4fa4;
-    sha224->buffLen = 0;
-    sha224->loLen = 0;
-    sha224->hiLen = 0;
-    reset_engine(&gLHDesc, PIC32_ALGO_SHA256);
-    return ret;
-}
-
-int wc_InitSha224_ex(Sha224* sha224, void* heap, int devId) {
-    (void) heap;
-    (void) devId;
-    if (sha224 == NULL)
-        return BAD_FUNC_ARG;
-    return wc_InitSha224(sha224);
-}
-
-int wc_Sha224Update(Sha224* sha224, const byte* data, word32 len) {
-    if (sha224 == NULL || (data == NULL && len > 0))
-        return BAD_FUNC_ARG;
-    return wc_Sha256Update((Sha256*) sha224, data, len);
-}
-
-int wc_Sha224Final(Sha224* sha224, byte* hash) {
-    int ret;
-    if (sha224 == NULL || hash == NULL)
-        return BAD_FUNC_ARG;
-    ret = wc_Pic32HashFinal(&sha224->cache, (byte*) sha224->buffer, sha224->digest, hash, SHA224_DIGEST_SIZE, PIC32_ALGO_SHA256, NULL);
-    if (ret != 0)
-        return ret;
-    XMEMCPY(hash, sha224->digest, WC_SHA224_DIGEST_SIZE);
-    return wc_InitSha224(sha224); /* reset state */
-}
-////////////////////////////////////////////////////////////////////////////////
 #endif /* !NO_SHA256 */
+#endif
 
-#endif /* WOLFSSL_PIC32MZ_HASH */
+int Pic32CryptEx(word32 *key, int keyLen, word32 *iv, int ivLen, byte* out, const byte* in, word32 sz, int dir, int algo, int cryptoalgo) {
+    int ret; /* ALIGN INPUT / OUTPUT BUFFERS */
+    int isO = 0, isI = 0;
+    byte *input = (byte*) in, *output = out;
+    if ((int) in % 4) {
+        input = (byte*) malloc(sz);
+        if (NULL == input) return 1;
+        memcpy(input, in, sz);
+        isI = 1;
+    }
+    if ((int) out % 4) {
+        output = (byte*) malloc(sz);
+        if (NULL == output) {
+            if (isI) free(input);
+            return 1;
+        }
+        memcpy(output, out, sz);
+        isO = 1;
+    }
+    ret = Pic32Crypto(input, sz, (word32*) output, sz, dir, algo, cryptoalgo, key, keyLen, iv, ivLen);
+    if (0 == ret) memcpy(out, output, sz);
+    if (isI) free(input);
+    if (isO) free(output);
+    return ret;
+}
 
+#ifdef CRYPTO_PIC32MZ_CRYPT
 
-
-
-
-
-
-
-
-
-
-
-#ifdef WOLFSSL_PIC32MZ_CRYPT
 #if !defined(NO_AES)
 
-int wc_Pic32AesCrypt(word32 *key, int keyLen, word32 *iv, int ivLen,
-        byte* out, const byte* in, word32 sz,
-        int dir, int algo, int cryptoalgo) {
-    return Pic32Crypto(in, sz, (word32*) out, sz, dir, algo, cryptoalgo,
-            key, keyLen, iv, ivLen);
+int Pic32AesCrypt(word32 *key, int keyLen, word32 *iv, int ivLen, byte * out, const byte * in, word32 sz, int dir, int algo, int cryptoalgo) {
+    if (((size_t) in % 4) || ((size_t) out % 4))
+        return Pic32CryptEx(key, keyLen, iv, ivLen, out, in, sz, dir, algo, cryptoalgo);
+    else
+        return Pic32Crypto(in, sz, (word32*) out, sz, dir, algo, cryptoalgo, key, keyLen, iv, ivLen);
 }
 #endif /* !NO_AES */
 
 #ifndef NO_DES3
 
-int wc_Pic32DesCrypt(word32 *key, int keyLen, word32 *iv, int ivLen,
-        byte* out, const byte* in, word32 sz,
-        int dir, int algo, int cryptoalgo) {
-    return Pic32Crypto(in, sz, (word32*) out, sz, dir, algo, cryptoalgo,
-            key, keyLen, iv, ivLen);
+int Pic32DesCrypt(word32 *key, int keyLen, word32 *iv, int ivLen, byte* out, const byte* in, word32 sz, int dir, int algo, int cryptoalgo) {
+    if (((size_t) in % 4) || ((size_t) out % 4))
+        return Pic32CryptEx(key, keyLen, iv, ivLen, out, in, sz, dir, algo, cryptoalgo);
+    else
+        return Pic32Crypto(in, sz, (word32*) out, sz, dir, algo, cryptoalgo, key, keyLen, iv, ivLen);
 }
+
 #endif /* !NO_DES3 */
-#endif /* WOLFSSL_PIC32MZ_CRYPT */
 
+#endif /* CRYPTO_PIC32MZ_CRYPT */
 
-#if !defined(NO_AES)
-
-/* Free Aes from use with async hardware */
-void wc_AesFree(Aes * aes) {
-    if (aes == NULL)
-        return;
-}
-
-static int wc_AesEncrypt(Aes* aes, const byte* inBlock, byte* outBlock) {
-    return wc_Pic32AesCrypt(aes->key, aes->keylen, NULL, 0,
-            outBlock, inBlock, AES_BLOCK_SIZE,
-            PIC32_ENCRYPTION, PIC32_ALGO_AES, PIC32_CRYPTOALGO_RECB);
-}
-
-static int wc_AesDecrypt(Aes* aes, const byte* inBlock, byte* outBlock) {
-    return wc_Pic32AesCrypt(aes->key, aes->keylen, NULL, 0,
-            outBlock, inBlock, AES_BLOCK_SIZE,
-            PIC32_DECRYPTION, PIC32_ALGO_AES, PIC32_CRYPTOALGO_RECB);
-}
-
-int wc_AesCbcEncrypt(Aes* aes, byte* out, const byte* in, word32 sz) {
-    int ret;
-    /* hardware fails on input that is not a multiple of AES block size */
-    if (sz % AES_BLOCK_SIZE != 0) {
-        return BAD_FUNC_ARG;
-    }
-    ret = wc_Pic32AesCrypt(
-            aes->key, aes->keylen, aes->reg, AES_BLOCK_SIZE,
-            out, in, sz, PIC32_ENCRYPTION,
-            PIC32_ALGO_AES, PIC32_CRYPTOALGO_RCBC);
-
-    /* store iv for next call */
-    if (ret == 0) {
-        XMEMCPY(aes->reg, out + sz - AES_BLOCK_SIZE, AES_BLOCK_SIZE);
-    }
-    return ret;
-}
-
-int wc_AesCbcDecrypt(Aes* aes, byte* out, const byte* in, word32 sz) {
-    int ret;
-    byte scratch[AES_BLOCK_SIZE];
-    /* hardware fails on input that is not a multiple of AES block size */
-    if (sz % AES_BLOCK_SIZE != 0) {
-        return BAD_FUNC_ARG;
-    }
-    XMEMCPY(scratch, in + sz - AES_BLOCK_SIZE, AES_BLOCK_SIZE);
-    ret = wc_Pic32AesCrypt(
-            aes->key, aes->keylen, aes->reg, AES_BLOCK_SIZE,
-            out, in, sz, PIC32_DECRYPTION,
-            PIC32_ALGO_AES, PIC32_CRYPTOALGO_RCBC);
-    /* store iv for next call */
-    if (ret == 0) {
-        XMEMCPY((byte*) aes->reg, scratch, AES_BLOCK_SIZE);
-    }
-    return ret;
-}
-
-int wc_AesCtrEncryptBlock(Aes* aes, byte* out, const byte* in) {
-    word32 tmpIv[AES_BLOCK_SIZE / sizeof (word32)];
-    XMEMCPY(tmpIv, aes->reg, AES_BLOCK_SIZE);
-    return wc_Pic32AesCrypt(
-            aes->key, aes->keylen, tmpIv, AES_BLOCK_SIZE,
-            out, in, AES_BLOCK_SIZE,
-            PIC32_ENCRYPTION, PIC32_ALGO_AES, PIC32_CRYPTOALGO_RCTR);
-}
-#endif
-
-
-#endif /* WOLFSSL_MICROCHIP_PIC32MZ */
+#endif /* CRYPTO_MICROCHIP_PIC32MZ */

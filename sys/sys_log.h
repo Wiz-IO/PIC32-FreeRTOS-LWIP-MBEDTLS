@@ -17,17 +17,16 @@ extern "C" {
 #include <stdarg.h>
 #include <stdio.h>
    
-#undef printf
-    
 void sys_log_init(int32_t brg);
 int Printf(const char * frm, ...);
+void PrintHex(char * begin, char * buffer, int size, char * end);
 
 #ifdef DEBUG
-#   define printf                   Printf
+#   undef  printf
+#   define printf Printf
 #   define LOG(_F_, ARG...)         Printf( (const char*) _F_, ##ARG )
 #   define LOG_ERROR()              Printf("[ERROR] %s() File: %s at Line %d\n", __FUNCTION__, __FILE__, __LINE__)
 #else
-#   define printf(_F_, ...)
 #   define LOG(_STR_, arg...) 
 #   define LOG_ERROR()
 #endif

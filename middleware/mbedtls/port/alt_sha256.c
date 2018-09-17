@@ -1,82 +1,104 @@
-#if !defined(MBEDTLS_CONFIG_FILE)
 #include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
 
 #if defined(MBEDTLS_SHA1_C)
-#include "mbedtls/sha256.h"
+#include "mbedtls/sha256_alt.h" 
 
-#if defined(MBEDTLS_SHA1_ALT)
-#include "pic32mz-crypt.h"
+#if defined(MBEDTLS_SHA256_ALT)
 
-////////////////////////////////////////////////////////////////////////////////
+#undef CRYPTO_CONTEXT
+#undef CRYPTO_DBG 
+#undef CRYPTO_MTD 
+#undef CRYPTO_ALG 
+#undef DIGEST_SIZE 
+#undef EMPTY_STR
 
-int wc_InitSha224_ex(Sha224 * sha224, void * heap, int devId) {
-    (void) heap;
-    (void) devId;
-    if (sha224 == NULL)
-        return BAD_FUNC_ARG;
-    return wc_InitSha224(sha224);
-}
+#define CRYPTO_CONTEXT  mbedtls_sha256_context
+#define CRYPTO_DBG      
+#define CRYPTO_MTD      PIC32_ENCRYPTION 
+#define CRYPTO_ALG      PIC32_ALGO_SHA256
+#define DIGEST_SIZE     32
+#define EMPTY_STR       "\xe3\xb0\xc4\x42\x98\xfc\x1c\x14\x9a\xfb\xf4\xc8\x99\x6f\xb9\x24\x27\xae\x41\xe4\x64\x9b\x93\x4c\xa4\x95\x99\x1b\x78\x52\xb8\x55"
 
-int wc_Sha224Update(Sha224 * sha224, const byte* data, word32 len) {
-    if (sha224 == NULL || (data == NULL && len > 0))
-        return BAD_FUNC_ARG;
-    return wc_Sha256Update((Sha256*) sha224, data, len);
-}
-
-int wc_Sha224Final(Sha224 * sha224, byte* hash) {
-    int ret;
-    if (sha224 == NULL || hash == NULL)
-        return BAD_FUNC_ARG;
-    ret = wc_Pic32HashFinal(&sha224->cache, (byte*) sha224->buffer, sha224->digest, hash, SHA224_DIGEST_SIZE, PIC32_ALGO_SHA256, NULL);
-    if (ret != 0)
-        return ret;
-    XMEMCPY(hash, sha224->digest, WC_SHA224_DIGEST_SIZE);
-    return wc_InitSha224(sha224); /* reset state */
-}
-////////////////////////////////////////////////////////////////////////////////
-
-
-void mbedtls_sha256_init(mbedtls_sha256_context *ctx) {
-    memset(ctx, 0, sizeof (mbedtls_sha256_context));
-}
-
-void mbedtls_sha256_free(mbedtls_sha256_context *ctx) {
-    if (ctx == NULL)
-        return;
-    memset(ctx, 0, sizeof (mbedtls_sha256_context));
-}
-
-void mbedtls_sha256_clone(mbedtls_sha256_context *dst, const mbedtls_sha256_context *src) {
-    *dst = *src;
-}
-
-void mbedtls_sha256_starts(mbedtls_sha256_context *ctx, int is224) {
-    mbedtls_sha256_init(ctx);
-    if (is224 == 1) {
-        wc_InitSha224_ex((Sha224*)ctx, NULL, 0);
-    } else {
-        wc_InitSha256_ex(ctx, NULL, 0);
+static void mbedtls_sha256_reset(CRYPTO_CONTEXT * ctx) {
+    if (ctx) {
+        if (ctx->cache.data) {
+            free(ctx->cache.data);
+            ctx->cache.data = NULL;
+            ctx->cache.size = 0;
+            //CRYPTO_DBG("[MD5] R: %X\n", ctx);
+        }
+        memset(ctx, 0, sizeof (CRYPTO_CONTEXT));
     }
 }
 
-void mbedtls_sha256_update(mbedtls_sha256_context *ctx, const unsigned char *input, size_t ilen) {
-    wc_Sha256Update(ctx, (const byte*) input, (word32) ilen);
+void mbedtls_sha256_init(CRYPTO_CONTEXT * ctx) {
+    CRYPTO_DBG("[SHA256] +: %X\n", ctx);
+    memset(ctx, 0, sizeof (CRYPTO_CONTEXT));
 }
 
-void mbedtls_sha256_finish(mbedtls_sha256_context *ctx, unsigned char output[32]) {
-    wc_Sha256Final(ctx, (byte*) output);
+void mbedtls_sha256_starts(CRYPTO_CONTEXT * ctx, int is224) {
+    CRYPTO_DBG("[SHA256] S: %X\n", ctx);
+    memset(ctx, 0, sizeof (CRYPTO_CONTEXT));
+    if (is224) {
+        CRYPTO_DBG("[ERROR] SHA224 NS\n", ctx);
+        ctx->cache.size = -1; // mark error
+    }
 }
 
-void mbedtls_sha256_process(mbedtls_sha256_context *ctx, const unsigned char data[64]) {
-    unsigned char output[65] = {0};
-    mbedtls_sha256_starts(ctx, 0);
-    mbedtls_sha256_update(ctx, data, 64);
-    mbedtls_sha256_finish(ctx, output);
+void mbedtls_sha256_free(CRYPTO_CONTEXT * ctx) {
+    CRYPTO_DBG("[SHA256] -: %X\n", ctx);
+    mbedtls_sha256_reset(ctx);
 }
 
+void mbedtls_sha256_clone(CRYPTO_CONTEXT * dst, const CRYPTO_CONTEXT * src) {
+    CRYPTO_DBG("[SHA256] C: %X <<< %X\n", dst, src);
+    //memcpy(dst, src, sizeof (CRYPTO_CONTEXT));
+    dst->cache.data = (uint8_t*) pvPortMalloc(src->cache.size);
+    if (dst->cache.data) {
+        if (src->cache.data && src->cache.size)
+            memcpy(dst->cache.data, src->cache.data, src->cache.size);
+        dst->cache.size = src->cache.size;
+    } else {
+        dst->cache.size = -1; // mark error
+        CRYPTO_DBG("[ERROR] SHA256 ERRORCLONE\n");
+    }
+}
+
+void mbedtls_sha256_update(CRYPTO_CONTEXT * ctx, const unsigned char * input, size_t ilen) {
+    CRYPTO_DBG("[SHA256] U: %X\n", ctx);
+    if (0 == ilen || ctx->cache.size >= PIC32_MAX_MEMORY_LIMIT) return;
+    cacheUpdate(&ctx->cache, input, ilen);
+    if (ctx->cache.size >= PIC32_MAX_MEMORY_LIMIT) {
+        CRYPTO_DBG("[ERROR] SHA256 LIMIT\n");
+    }
+}
+
+void mbedtls_sha256_finish(CRYPTO_CONTEXT * ctx, unsigned char output[32]) {
+    CRYPTO_DBG("[SHA256] F: %X\n", ctx);
+    if (NULL == ctx->cache.data ||
+            ctx->cache.size >= PIC32_MAX_MEMORY_LIMIT ||
+            Pic32Crypto((const uint8_t *) ctx->cache.data, ctx->cache.size,
+            (uint32_t*) output, DIGEST_SIZE, CRYPTO_MTD, CRYPTO_ALG, 0, NULL, 0, NULL, 0))
+        memcpy(output, EMPTY_STR, DIGEST_SIZE);
+    mbedtls_sha256_reset(ctx);
+    //PrintHex("[SHA256] ", (char*) output, DIGEST_SIZE, "\n");
+}
+
+void mbedtls_sha256_process(CRYPTO_CONTEXT *ctx, const unsigned char data[64]) {
+    CRYPTO_DBG("[SHA256] P: %X\n", ctx);
+    //mbedtls_sha256_init(ctx);
+    //mbedtls_sha256_update(ctx, data, 64);
+    //mbedtls_sha256_finish(ctx, ctx->buf);
+    //mbedtls_sha256_free(ctx);
+    (void) data;
+}
+
+#undef CRYPTO_CONTEXT
+#undef CRYPTO_DBG 
+#undef CRYPTO_MTD 
+#undef CRYPTO_ALG 
+#undef DIGEST_SIZE 
+#undef EMPTY_STR
 
 #endif /*MBEDTLS_SHA256_ALT*/
 #endif /*MBEDTLS_SHA256_C*/

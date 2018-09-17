@@ -814,253 +814,12 @@ int mbedtls_des3_crypt_cbc( mbedtls_des3_context *ctx,
 
 #else
 
-void mbedtls_des_init( mbedtls_des_context *ctx )
-{
-    memset( ctx, 0, sizeof(mbedtls_des_context) );
-}
-void mbedtls_des_free( mbedtls_des_context *ctx )
-{
-    if( ctx == NULL )
-        return;
-    memset( ctx, 0, sizeof(mbedtls_des_context) );
-}
-
-void mbedtls_des3_init( mbedtls_des3_context *ctx )
-{
-    memset( ctx, 0, sizeof(mbedtls_des3_context) );
-}
-void mbedtls_des3_free( mbedtls_des3_context *ctx )
-{
-    if( ctx == NULL )
-        return;
-    memset( ctx, 0, sizeof(mbedtls_des3_context) );
-}
-
-int mbedtls_des_setkey_enc( mbedtls_des_context *ctx, const unsigned char key[MBEDTLS_DES_KEY_SIZE] )
-{
-    memcpy( ctx->key, key, MBEDTLS_DES_KEY_SIZE );
-    ctx->mode = 1;
-    return ( 0 );
-}
-int mbedtls_des_setkey_dec( mbedtls_des_context *ctx, const unsigned char key[MBEDTLS_DES_KEY_SIZE] )
-{
-    memcpy( ctx->key, key, MBEDTLS_DES_KEY_SIZE );
-    ctx->mode = 0;
-    return ( 0 );
-}
-int mbedtls_des3_set2key_enc( mbedtls_des3_context *ctx,
-                      const unsigned char key[MBEDTLS_DES_KEY_SIZE * 2] )
-{
-    ctx->key_byte_length = MBEDTLS_DES_KEY_SIZE * 2;
-    memcpy( ctx->key, key, ctx->key_byte_length );
-    ctx->mode = 1;
-    return ( 0 );
-}
-int mbedtls_des3_set2key_dec( mbedtls_des3_context *ctx,
-                      const unsigned char key[MBEDTLS_DES_KEY_SIZE * 2] )
-{
-    ctx->key_byte_length = MBEDTLS_DES_KEY_SIZE * 2;
-    memcpy( ctx->key, key, ctx->key_byte_length );
-    ctx->mode = 0;
-    return ( 0 );
-}
-int mbedtls_des3_set3key_enc( mbedtls_des3_context *ctx,
-                      const unsigned char key[MBEDTLS_DES_KEY_SIZE * 3] )
-{
-    ctx->key_byte_length = MBEDTLS_DES_KEY_SIZE * 3;
-    memcpy( ctx->key, key, ctx->key_byte_length );
-    ctx->mode = 1;
-    return ( 0 );
-}
-int mbedtls_des3_set3key_dec( mbedtls_des3_context *ctx,
-                      const unsigned char key[MBEDTLS_DES_KEY_SIZE * 3] )
-{
-    ctx->key_byte_length = MBEDTLS_DES_KEY_SIZE * 3;
-    memcpy( ctx->key, key, ctx->key_byte_length );
-    ctx->mode = 0;
-    return ( 0 );
-}
-
-int mbedtls_des_crypt_ecb( mbedtls_des_context *ctx,
-                    const unsigned char input[8],
-                    unsigned char output[8] )
-{
-    int ret;
-    hal_des_buffer_t output_buf, input_buf, key_buf;
-    unsigned char output_temp[24];
-
-
-    output_buf.buffer = (uint8_t*)output_temp;
-    output_buf.length = 16;
-    input_buf.buffer = (uint8_t*)input;
-    input_buf.length = 8;
-    key_buf.buffer = (uint8_t*)ctx->key;
-    key_buf.length = MBEDTLS_DES_KEY_SIZE;
-
-    if( ctx->mode == 0 ) /* decrypt */
-    {
-        do {
-            ret = (int)hal_des_ecb_decrypt( &output_buf, &input_buf, &key_buf );
-            if( ret == -100 )
-                hal_gpt_delay_ms(1);
-        } while( ret == -100 );
-    }
-    else
-    {
-        do {
-            ret = (int)hal_des_ecb_encrypt( &output_buf, &input_buf, &key_buf );
-            if( ret == -100 )
-                hal_gpt_delay_ms(1);
-        } while( ret == -100 );
-    }
-
-    memcpy(output, output_temp, 8);
-
-    return ret;
-}
 #if defined(MBEDTLS_CIPHER_MODE_CBC)
-int mbedtls_des_crypt_cbc( mbedtls_des_context *ctx,
-                    int mode,
-                    size_t length,
-                    unsigned char iv[8],
-                    const unsigned char *input,
-                    unsigned char *output )
-{
-    int ret;
-    unsigned char iv_temp[8];
-    unsigned char* output_temp;
-    hal_des_buffer_t input_buf, output_buf, key_buf;
-
-    if( length % 8 )
-        return( MBEDTLS_ERR_DES_INVALID_INPUT_LENGTH );
-
-    output_temp = mbedtls_calloc( 1, length + 16 );
-    if( output_temp == NULL )
-        return( MBEDTLS_ERR_DES_INVALID_INPUT_LENGTH );
-
-    output_buf.buffer = (uint8_t*)output_temp;
-    output_buf.length = (uint32_t)length + 8;
-    input_buf.buffer = (uint8_t*)input;
-    input_buf.length = (uint32_t)length;
-    key_buf.buffer = (uint8_t*)ctx->key;
-    key_buf.length = MBEDTLS_DES_KEY_SIZE;
-
-
-    if( mode == 0 ) /* decrypt */
-    {
-        memcpy( iv_temp, input + length - 8, 8 );
-        do {
-            ret = (int)hal_des_cbc_decrypt( &output_buf, &input_buf, &key_buf, (uint8_t*)iv );
-            if( ret == -100 )
-                hal_gpt_delay_ms(1);
-        } while( ret == -100 );
-        memcpy( iv, iv_temp, 8 );
-    }
-    else
-    {
-        do {
-            ret = (int)hal_des_cbc_encrypt( &output_buf, &input_buf, &key_buf, (uint8_t*)iv );
-            if (ret == -100 )
-                hal_gpt_delay_ms(1);
-        } while( ret == -100 );
-        memcpy( iv, output_temp + length - 8, 8 );
-    }
-
-    memcpy( output, output_temp, length );
-    mbedtls_free( output_temp );
-    return ret;
-}
 
 #endif /* MBEDTLS_CIPHER_MODE_CBC */
 
-int mbedtls_des3_crypt_ecb( mbedtls_des3_context *ctx,
-                     const unsigned char input[8],
-                     unsigned char output[8] )
-{
-    int ret;
-    hal_des_buffer_t output_buf, input_buf, key_buf;
-    unsigned char output_temp[24];
-
-
-    output_buf.buffer = (uint8_t*)output_temp;
-    output_buf.length = 16;
-    input_buf.buffer = (uint8_t*)input;
-    input_buf.length = 8;
-    key_buf.buffer = (uint8_t*)ctx->key;
-    key_buf.length = ctx->key_byte_length;
-
-    if( ctx->mode == 0) /* decrypt */
-    {
-        do {
-            ret = (int)hal_des_ecb_decrypt( &output_buf, &input_buf, &key_buf );
-            if (ret == -100 )
-                hal_gpt_delay_ms(1);
-        } while( ret == -100 );
-    }
-    else
-    {
-        do {
-            ret = (int)hal_des_ecb_encrypt( &output_buf, &input_buf, &key_buf );
-            if (ret == -100 )
-                hal_gpt_delay_ms(1);
-        } while( ret == -100 );
-    }
-
-    memcpy(output, output_temp, 8);
-
-    return ret;
-}
 #if defined(MBEDTLS_CIPHER_MODE_CBC)
-int mbedtls_des3_crypt_cbc( mbedtls_des3_context *ctx,
-                     int mode,
-                     size_t length,
-                     unsigned char iv[8],
-                     const unsigned char *input,
-                     unsigned char *output )
-{
-    int ret;
-    unsigned char iv_temp[8];
-    unsigned char* output_temp;
-    hal_des_buffer_t input_buf, output_buf, key_buf;
 
-    if( length % 8 )
-        return( MBEDTLS_ERR_DES_INVALID_INPUT_LENGTH );
-
-    output_temp = mbedtls_calloc( 1, length + 16 );
-    if( output_temp == NULL )
-        return( MBEDTLS_ERR_DES_INVALID_INPUT_LENGTH );
-
-    output_buf.buffer = (uint8_t*)output_temp;
-    output_buf.length = (uint32_t)length + 8;
-    input_buf.buffer = (uint8_t*)input;
-    input_buf.length = (uint32_t)length;
-    key_buf.buffer = (uint8_t*)ctx->key;
-    key_buf.length = ctx->key_byte_length;
-
-    if( mode == 0 ) /* decrypt */
-    {
-        memcpy( iv_temp, input + length - 8, 8 );
-        do {
-            ret = (int)hal_des_cbc_decrypt( &output_buf, &input_buf, &key_buf, (uint8_t*)iv );
-            if( ret == -100 )
-                hal_gpt_delay_ms(1);
-        } while( ret == -100 );
-        memcpy( iv, iv_temp, 8 );
-    }
-    else
-    {
-        do {
-            ret = (int)hal_des_cbc_encrypt( &output_buf, &input_buf, &key_buf, (uint8_t*)iv );
-            if( ret == -100 )
-                hal_gpt_delay_ms(1);
-        } while( ret == -100 );
-        memcpy( iv, output_temp + length - 8, 8 );
-    }
-
-    memcpy( output, output_temp, length );
-    mbedtls_free( output_temp );
-    return ret;
-}
 #endif /* MBEDTLS_CIPHER_MODE_CBC */
 
 #endif /* !MBEDTLS_DES_ALT */
@@ -1196,10 +955,10 @@ int mbedtls_des_self_test( int verbose )
                 mbedtls_printf( "failed\n" );
 
             ret = 1;
-            goto exit;
+            //goto exit;
         }
 
-        if( verbose != 0 )
+        else if( verbose != 0 )
             mbedtls_printf( "passed\n" );
     }
 
@@ -1292,10 +1051,10 @@ int mbedtls_des_self_test( int verbose )
                 mbedtls_printf( "failed\n" );
 
             ret = 1;
-            goto exit;
+            //goto exit;
         }
 
-        if( verbose != 0 )
+        else if( verbose != 0 )
             mbedtls_printf( "passed\n" );
     }
 #endif /* MBEDTLS_CIPHER_MODE_CBC */

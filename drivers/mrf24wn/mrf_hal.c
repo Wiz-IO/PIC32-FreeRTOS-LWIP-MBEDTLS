@@ -97,11 +97,11 @@ void WDRV_SPI_Init(void) {
     SPI3CON = 0;
     int i, dumy;
     for (i = 0; i < 16; i++) dumy = SPI3BUF;
-    SPI3BRG = spi_calutate_brg(SYS_CLK_BUS_PERIPHERAL_1, 8000000);
+    SPI3BRG = spi_calutate_brg(SYS_CLK_BUS_PERIPHERAL_1, WF_SPI_SPEED);
     SPI3CONSET = _SPI3CON_MSTEN_MASK | _SPI3CON_CKE_MASK;
     SPI3CONSET = _SPI3CON_ON_MASK; /* Enable SPI */
 
-    IPC4bits.INT3IP = 1;
+    IPC4bits.INT3IP = WD_INT_PRIO; // TODO PRIO
     WD_INT_CLEAR();
 }
 
@@ -134,14 +134,13 @@ void WDRV_INTR_Deinit(void) {
     WDRV_INTR_SourceDisable();
 }
 
-/* LIB, 
- * add mrf_isr.S !!! 
- */
+/* LIB, add mrf_isr.S !!!  */
+volatile bool g_interrupt_enabled = false;
 extern void WDRV_EXT_HWInterruptHandler(void const *pointer);
-void ISR_MRF24WN(void) {
+void ISR_MRF24WN(void) {    
     WD_INT_DISABLE(); // disable further interrupts
     WD_INT_CLEAR();
-    LED_RED_ON();
+    g_interrupt_enabled = true;
     WDRV_EXT_HWInterruptHandler(NULL);
-    LED_RED_OFF();
+    g_interrupt_enabled = false;
 }

@@ -6,12 +6,17 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
-#define TASK_PRIORITY_IDLE                      0                   
-#define TASK_PRIORITY_LOW                       1             
-#define TASK_PRIORITY_NORMAL                    2                                  
-#define TASK_PRIORITY_HIGH                      3    
-
-#define TASK_PRIORITY_MAX                       10UL
+#ifndef __LANGUAGE_ASSEMBLY__
+typedef enum {
+    TASK_PRIORITY_IDLE = 0,                   
+    TASK_PRIORITY_LOW ,             
+    TASK_PRIORITY_NORMAL,                                 
+    TASK_PRIORITY_HIGH,    
+    TASK_PRIORITY_RTOS_LOW,
+    TASK_PRIORITY_RTOS_HIGH,
+} TASK_PRIORITY_E;
+#endif
+#define configMAX_PRIORITIES                    ( 8 )
 
 #define configUSE_PREEMPTION                    1
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 1
@@ -19,12 +24,11 @@
 #define configCPU_CLOCK_HZ                      ( 200000000UL )
 #define configPERIPHERAL_CLOCK_HZ               ( 100000000UL )
 #define configTICK_RATE_HZ                      ( ( TickType_t ) 1000 )
-#define configMAX_PRIORITIES                    ( TASK_PRIORITY_MAX )
-#define configMINIMAL_STACK_SIZE                ( 512 )
-#define configISR_STACK_SIZE                    ( 512 )
+#define configMINIMAL_STACK_SIZE                ( 200 )
+#define configISR_STACK_SIZE                    ( 400 )
 #define configSUPPORT_DYNAMIC_ALLOCATION        1
 #define configSUPPORT_STATIC_ALLOCATION         0
-#define configTOTAL_HEAP_SIZE                   ( ( size_t ) 128 * 1024 )
+#define configTOTAL_HEAP_SIZE                   ( ( size_t ) 256 * 1024UL )
 #define configMAX_TASK_NAME_LEN                 ( 16 )
 #define configUSE_16_BIT_TICKS                  0
 #define configIDLE_SHOULD_YIELD                 1
@@ -56,7 +60,7 @@
 
 /* Software timer related definitions. */
 #define configUSE_TIMERS                        1
-#define configTIMER_TASK_PRIORITY               ( TASK_PRIORITY_NORMAL )
+#define configTIMER_TASK_PRIORITY               ( TASK_PRIORITY_RTOS_HIGH )
 #define configTIMER_QUEUE_LENGTH                10
 #define configTIMER_TASK_STACK_DEPTH            ( configMINIMAL_STACK_SIZE * 2 )
 #define configUSE_DAEMON_TASK_STARTUP_HOOK      0
@@ -90,8 +94,9 @@ Only API functions that end in ...FromISR() can be used within interrupts. */
 #define INCLUDE_xTaskAbortDelay                 0
 #define INCLUDE_xTaskGetHandle                  0
 
-
-/* Define to trap errors during development. */
-#define configASSERT( x ) if( x == 0 ) vAssertCalled( __FILE__, __LINE__ )
+#ifndef __LANGUAGE_ASSEMBLY__
+extern void vAssertCalled( const char * pcFile, unsigned long ulLine );
+#define configASSERT( x )    if( ( x ) == 0 ) vAssertCalled( __FILE__, __LINE__ )
+#endif
 
 #endif /* FREERTOS_CONFIG_H */

@@ -27,9 +27,11 @@
 extern "C" {
 #endif
 
-#include "pic32mz-crypt.h"    
+#include "pic32_crypto.h"    
     
-typedef Sha256 mbedtls_sha256_context;
+typedef struct {
+    hash_cache_t cache;
+} mbedtls_sha256_context;
 
 /**
  * \brief          Initialize SHA-256 context

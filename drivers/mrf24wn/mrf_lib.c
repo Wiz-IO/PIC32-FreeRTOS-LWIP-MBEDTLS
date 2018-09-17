@@ -26,10 +26,12 @@ void wc_ErrorString(int error, char * buffer) {
 /* LIB */
 void WDRV_Assert(int condition, const char * msg, const char * file, int line) {
     if (!condition) {
+        portDISABLE_INTERRUPTS();
         if (*msg)
             LOG("\n[MRF] Driver ASSERTS: %s\n%s, line %u\n", msg, file, line);
         else
             LOG("\n[MRF] Driver ASSERTS:\n%s, line %u\n", file, line);
+        while(1);
     }
 }
 

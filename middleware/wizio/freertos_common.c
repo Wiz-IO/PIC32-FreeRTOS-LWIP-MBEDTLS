@@ -11,26 +11,16 @@ BaseType_t xQueueGenericReceive(QueueHandle_t xQueue, void * const pvBuffer, Tic
     xQueueReceive(xQueue, pvBuffer, xTicksToWait);
 }
 
-void platform_assert(const char *expr, const char *file, int line) {
-    LOG("[ASSERT] %s, %s at %d\n", expr, file, line);
-    portDISABLE_INTERRUPTS();
-    for (;;);
-}
-
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
-    LOG("[ASSERT] Stack overflow: %x %s\n", (unsigned int) xTask, (portCHAR *) pcTaskName);
-    for (;;);
+    portDISABLE_INTERRUPTS();
+    LOG("\n[ASSERT] Stack overflow: 0x%x %s\n", (unsigned int) xTask, (portCHAR *) pcTaskName);
+    LED_RED_ON();
+    while (1);
 }
 
-void vAssertCalled(unsigned long ulLine, const char * const pcFileName) {
-    //static portBASE_TYPE xPrinted = pdFALSE;
-    volatile uint32_t ulSetToNonZeroInDebuggerToContinue = 0;
-    taskENTER_CRITICAL();
-    {
-        /* You can step out of this function to debug the assertion by using the debugger to set ulSetToNonZeroInDebuggerToContinue to a non-zero value. */
-        LOG("[RTOS-ASSERT] %s %s", pcFileName, ulLine);
-        while (ulSetToNonZeroInDebuggerToContinue == 0) {
-        }
-    }
-    taskEXIT_CRITICAL();
+void vAssertCalled( const char * const pcFileName, unsigned long ulLine) {
+    portDISABLE_INTERRUPTS();
+    LOG("\n[ASSERT] Called: %s, Line: %u\n", pcFileName, ulLine);
+    LED_RED_ON();
+    while (1);
 }

@@ -306,7 +306,7 @@ void mbedtls_md5_finish(mbedtls_md5_context *ctx, unsigned char output[16]) {
 }
 #else
 
-//[WizIO] port/alt_md5.c
+//[WizIO] port/alt_md5.c ///////////////////////////////////////////////////////
 
 #endif /* !MBEDTLS_MD5_ALT */
 
@@ -375,11 +375,11 @@ int mbedtls_md5_self_test(int verbose) {
             if (verbose != 0)
                 mbedtls_printf("failed\n");
 
-            return ( 1);
+            //return ( 1);
         }
-
-        if (verbose != 0)
-            mbedtls_printf("passed\n");
+        else 
+            if (verbose != 0)
+                mbedtls_printf("passed\n");
     }
 
     if (verbose != 0)

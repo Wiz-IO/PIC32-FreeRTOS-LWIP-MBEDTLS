@@ -31,9 +31,9 @@
 
 #if HTTPCLIENT_DEBUG
 #include "sys.h"
-#define ERR(fmt,arg...)   TRACE("[HTTP]: "fmt"\n",##arg)
-#define WRN(fmt,arg...)  TRACE("[HTTP]: "fmt"\n",##arg)
-#define DBG(fmt,arg...)   TRACE("[HTTP]: "fmt"\n",##arg)
+#define ERR(fmt,arg...)   LOG("[HTTP-E]: "fmt"\n",##arg)
+#define WRN(fmt,arg...)   LOG("[HTTP-W]: "fmt"\n",##arg)
+#define DBG(fmt,arg...)   LOG("[HTTP-D]: "fmt"\n",##arg)
 #else
 #define DBG(x, ...)
 #define WRN(x, ...)
@@ -51,6 +51,14 @@
 
 #if defined(MBEDTLS_DEBUG_C)
 #define DEBUG_LEVEL 0
+/*
+ *  SSL Debug levels
+ *      - 0 No debug
+ *      - 1 Error
+ *      - 2 State change
+ *      - 3 Informational
+ *      - 4 Verbose
+ */ 
 #endif
 
 // static int httpclient_parse_host(char *url, char *host, size_t maxhost_len);

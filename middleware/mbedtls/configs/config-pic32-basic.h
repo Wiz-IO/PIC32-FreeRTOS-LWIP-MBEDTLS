@@ -60,7 +60,6 @@
 #define MBEDTLS_PEM_PARSE_C
 
 #define MBEDTLS_SSL_MAX_CONTENT_LEN  (6*1024)   /**< Size of the input / output buffer */
-
 #define MBEDTLS_AES_ROM_TABLES
 
 #ifndef PIC_DEBUG_LEVEL_NONE
@@ -72,12 +71,13 @@
 /* PIC32 revisions */
 #define MBEDTLS_PIC32
 
+/* Use Hardware Crypto */
 //#define MBEDTLS_AES_ALT
 //#define MBEDTLS_DES_ALT
-#define MBEDTLS_MD5_ALT
+
+//#define MBEDTLS_MD5_ALT
 //#define MBEDTLS_SHA1_ALT
 //#define MBEDTLS_SHA256_ALT
-//#define MBEDTLS_SHA512_ALT
 
 #include "mbedtls/check_config.h"
 

@@ -12,6 +12,7 @@ extern "C" {
 
 #include "config.h"    
 #include <xc.h>
+#include <sys/kmem.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -55,20 +56,6 @@ static inline __attribute__((always_inline)) void SYS_SystemLock(void) {
 #define SetCoreTimer(V)     _CP0_SET_COUNT(V)
 #define us_SCALE            (uint32_t)(GetSystemClock()/2000000ul)
 #define ms_SCALE            (uint32_t)(GetSystemClock()/2000ul)
-
-typedef unsigned long       _paddr_t; /* a physical address */
-typedef unsigned long       _vaddr_t; /* a virtual address */
-#define KVA_TO_PA(v)        ((_paddr_t)(v) & 0x1fffffff)
-#define PA_TO_KVA0(pa)      ((void *) ((pa) | 0x80000000))
-#define PA_TO_KVA1(pa)      ((void *) ((pa) | 0xa0000000))
-#define KVA0_TO_KVA1(v)     ((void *) ((unsigned)(v) | 0x20000000))
-#define KVA1_TO_KVA0(v)     ((void *) ((unsigned)(v) & ~0x20000000))
-#define IS_KVA(v)           ((int)(v) < 0)
-#define IS_KVA0(v)          (((unsigned)(v) >> 29) == 0x4)
-#define IS_KVA1(v)          (((unsigned)(v) >> 29) == 0x5)
-#define IS_KVA01(v)         (((unsigned)(v) >> 30) == 0x2)
-
-#define VirtToPhys(PTR) KVA_TO_PA( (void*) PTR )
 
 #define mSET( REG_NAME, BIT_NAME)   REG_NAME##SET = _##REG_NAME##_##BIT_NAME##_MASK
 #define mCLR( REG_NAME, BIT_NAME)   REG_NAME##CLR = _##REG_NAME##_##BIT_NAME##_MASK
@@ -122,7 +109,7 @@ uint32_t sys_rand(void);
     LED_GREEN_OFF();                    \
     LED_ORANGE_OFF();                   \
 
-
+#define CLEAR_GPIO() {ANSELA = 0;ANSELB = 0;ANSELC = 0;ANSELD = 0;ANSELE = 0;ANSELF = 0;}
 
 #ifdef	__cplusplus
 }

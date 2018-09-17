@@ -108,7 +108,7 @@ static void ProceedConnectEventCB(uint32_t connected, uint8_t devID, uint8_t *ma
             if (!softAPStarted) {
                 softAPStarted = true;
                 ConnectionStateUpdate(connected, reason);
-                LOG("[MRF] SoftAP network is enabled\r\n");
+                LOG("[MRF] SoftAP network is enabled\n");
             } else {
                 MRF_ClientCacheUpdate(connected, mac);
                 LOG("A client is connected\n");
@@ -268,9 +268,9 @@ static void entryWifiApp(void * user) {
     if (0 == wlan.ip_addr.addr && sem_wifi_ip_ready)
         xSemaphoreTake(sem_wifi_ip_ready, portMAX_DELAY);
     wifi_ready = true;
-END:
     LOG("[WIFI] READY\n");
-    vTaskDelete(NULL);
+END:    
+    vTaskDelete(NULL);    
 }
 
 void WIFI_Start(const char * str_ip, const char * str_gw, const char * str_mask) {
@@ -287,3 +287,4 @@ void WIFI_waitReady(void) {
     while (!wifi_ready)
         delay_ms(100);
 }
+

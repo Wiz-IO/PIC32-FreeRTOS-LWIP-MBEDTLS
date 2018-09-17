@@ -3,12 +3,8 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/MCHIP/32/WizIO32/main.c</file>
-            <file>file:/C:/MCHIP/32/WizIO32/sys/sys_log.c</file>
-            <file>file:/C:/MCHIP/32/WizIO32/sys/sys.c</file>
-            <file>file:/C:/MCHIP/32/WizIO32/middleware/freertos/include/FreeRTOS.h</file>
-            <file>file:/C:/MCHIP/32/WizIO32/middleware/freertos/include/semphr.h</file>
-            <file>file:/C:/MCHIP/32/WizIO32/sys/sys.h</file>
+            <file>file:/D:/MCHIP_PRJ/PIC32/WizIO32/sys/sys_log.c</file>
+            <file>file:/D:/MCHIP_PRJ/PIC32/WizIO32/main.c</file>
         </group>
     </open-files>
 </project-private>

@@ -23,15 +23,16 @@
 #ifndef __MD5_ALT_H__
 #define __MD5_ALT_H__
 
+//[WizIO]
+#include "pic32_crypto.h" 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-//[WizIO]
-#include "pic32mz-crypt.h"  
-typedef Md5 mbedtls_md5_context;
-//typedef struct { Md5 md5; } mbedtls_md5_context;
-
+   
+typedef struct {
+    hash_cache_t cache;
+} mbedtls_md5_context;
 
 /**
  * \brief          Initialize MD5 context
@@ -86,5 +87,4 @@ void mbedtls_md5_process( mbedtls_md5_context *ctx, const unsigned char data[64]
 #ifdef __cplusplus
 }
 #endif
-
 #endif /* __MD5_ALT_H__ */

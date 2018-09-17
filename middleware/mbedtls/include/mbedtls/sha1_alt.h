@@ -28,8 +28,10 @@
 extern "C" {
 #endif
 
-#include "pic32mz-crypt.h"    
-typedef Sha mbedtls_sha1_context;    
+#include "pic32_crypto.h"    
+typedef struct {
+    hash_cache_t cache;
+} mbedtls_sha1_context;    
 
 /**
  * \brief          Initialize SHA-1 context

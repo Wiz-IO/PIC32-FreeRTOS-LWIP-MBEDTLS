@@ -12,6 +12,9 @@ extern "C" {
 
 #include "sys.h"
     
+#define WF_SPI_SPEED                8000000UL  
+#define WD_INT_PRIO                 2
+    
 #define WF_HIBERNATE_BIT            0
 #define WF_HIBERNATE_DIR            TRISA
 #define WF_HIBERNATE_LAT            LATA

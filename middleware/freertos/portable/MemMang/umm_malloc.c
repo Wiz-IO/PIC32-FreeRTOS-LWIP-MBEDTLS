@@ -543,7 +543,10 @@ UMM_H_ATTPACKPRE typedef struct umm_block_t {
 #  define umm_realloc realloc
 #endif
 
-umm_block umm_heap[(UMM_MALLOC_CFG__HEAP_SIZE / sizeof(umm_block))];
+umm_block 
+umm_heap[(UMM_MALLOC_CFG__HEAP_SIZE / sizeof(umm_block))] 
+__attribute__((aligned(8))) = {0};
+
 const unsigned short int umm_numblocks = (sizeof(umm_heap) / sizeof(umm_block));
 
 #define UMM_NUMBLOCKS (umm_numblocks)

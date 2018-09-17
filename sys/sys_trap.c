@@ -37,7 +37,7 @@ void _general_exception_handler(void) {
     _excep_code = (_CP0_GET_CAUSE() & 0x0000007C) >> 2;
     _excep_addr = _CP0_GET_EPC();
     _cause_str = cause[_excep_code];
-    LOG("[TRAP] General Exception %s (cause = %d, addr = %x).", _cause_str, _excep_code, _excep_addr);
+    LOG("[TRAP] General Exception '%s' (cause = %d, addr = %x).", _cause_str, _excep_code, _excep_addr);
 #endif  
     while (1) {
         LED_RED_ON();

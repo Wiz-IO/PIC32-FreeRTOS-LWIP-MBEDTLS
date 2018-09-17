@@ -443,7 +443,7 @@ int mbedtls_sha256_self_test( int verbose )
             if( verbose != 0 )
                 mbedtls_printf( "failed\n" );
             ret = 1;
-            goto exit;
+            //goto exit;
         }
         else
         if( verbose != 0 )

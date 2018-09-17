@@ -7,23 +7,30 @@
 #include "osal.h"
 #include "lwip/tcpip.h"
 
+void ssl_test(void);
 void entryHTTP(void * arg);
 
-void entryBLINK(void * arg) {
-    (void) arg;
-    LOG("[BLINK] BEGIN\n");
+void entryMAIN(void * arg) {
+    LOG("[MAIN] BEGIN\n");
     while (1) {
         delay_ms(100);
         LED_GREEN_TOGGLE();
     }
+    (void) arg;
 }
+
+char * p = 0;
 
 int main(void) {
     SYS_Init();
-    LOG("[MAIN] BEGIN\n");   
+    LOG("[SYS] BEGIN\n");  
+    //ssl_test();
+    
     tcpip_init(0, 0);
-    WIFI_Start(NULL, NULL, NULL);
-    xTaskCreate(entryBLINK, "BLINK", configMINIMAL_STACK_SIZE, NULL, TASK_PRIORITY_LOW, NULL);
-    xTaskCreate(entryHTTP, "HTTP", 6 * 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
+    WIFI_Start(NULL, NULL, NULL);     
+    xTaskCreate(entryHTTP, "HTTP", 1024, NULL, TASK_PRIORITY_NORMAL, NULL);
+    xTaskCreate(entryMAIN, "MAIN",  200, NULL, TASK_PRIORITY_NORMAL, NULL);    
+    
+    //LOG("[RTOS] xPortGetFreeHeapSize:            %u\n", xPortGetFreeHeapSize());   
     vTaskStartScheduler();
 }

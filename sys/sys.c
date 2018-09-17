@@ -6,16 +6,12 @@
 #include "sys.h"
 #include "fan_system.h"
 
-volatile bool g_interrupt_enabled = false;
-
 /* Used from MRF24 LIB */
 bool SYS_INT_Disable(void) {
-    g_interrupt_enabled = false;
     return (bool) GET_INT_DISABLE();
 }
 
 void SYS_INT_Enable(void) {
-    g_interrupt_enabled = true;
     INT_ENABLE();
 }
 
@@ -90,17 +86,15 @@ uint32_t sys_rand(void) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-int SYS_Init(void) {
-    SysPerformanceConfig(SYS_CLK_FREQ, PCACHE_PREFETCH_ENABLE_ALL);
-    HardwareUseMultiVectoredInterrupts();    
-    ANSELA = 0;
-    ANSELB = 0;
-    ANSELC = 0;
-    ANSELD = 0;
-    ANSELE = 0;
-    ANSELF = 0;
-    INIT_LED();
+void  __attribute__((far)) _pic32_init_cache (SYS_CACHE_COHERENCY cacheCoherency);
+
+int SYS_Init(void) { 
+    PRECON = 0b110010; // SysPerformanceConfig(SYS_CLK_FREQ, PCACHE_PREFETCH_ENABLE_ALL); 
+    CLEAR_GPIO();
+    INIT_LED();               
+    HardwareUseMultiVectoredInterrupts();
 #ifdef DEBUG
     sys_log_init(DBG_SPEED);
+    LOG("\n[DEBUG] INIT\n");
 #endif
 }

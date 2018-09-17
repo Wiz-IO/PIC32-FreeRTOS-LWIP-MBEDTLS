@@ -5,7 +5,6 @@
 #ifndef _UMM_MALLOC_CFG_H
 #define _UMM_MALLOC_CFG_H
 
-
 // ----------------------------------------------------------------------------
 //
 // There are a number of defines you can set at compile time that affect how

@@ -14,14 +14,14 @@
 
 #define FREERTOS
 
-#define DEBUG               /* GLOBAL ENABLE */
-#define DBG_SPEED           115200
+#define DEBUG                       /* GLOBAL ENABLE */
+#define DBG_SPEED                   230400
 //#define DBG_USE_DMA    
-#define DBG_BUF_MAX 512     /* for DMA debug buffer is coherent */
+#define DBG_BUF_MAX                 512 /* for DMA debug buffer is coherent */
 
 // WIFI SSID mrf.h /////////////////////////////////////////////////////////////
-//#define WDRV_DEFAULT_SSID         "Comet Guest Room"    
-#define WDRV_DEFAULT_SSID           "THE WIZARD"
+#define WDRV_DEFAULT_SSID           "Comet Guest Room"    
+//#define WDRV_DEFAULT_SSID           "THE WIZARD"
 
 
 #endif	/* ___CONFIG_H */
