@@ -85,8 +85,9 @@ HTTP TEST...
 
 **MBEDTLS**
 
-Software crypto full
-Hardware crypto - tested with this project 
+Soft crypto - full
+
+Hard crypto - tested with this project 
 * ALT_MD5
 * ALT_SHA1/256 (SHA224 is not supported from PIC32)
 * ALT_AES (ecb, cbc) 
