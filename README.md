@@ -90,9 +90,11 @@ Soft crypto - full
 Hard crypto - tested with this project 
 * ALT_MD5
 * ALT_SHA1/256 (SHA224 is not supported from PIC32)
+* Hash message limit 8k - pic32_crypto.h, #define PIC32_MAX_MEMORY_LIMIT (8*1024)
 * ALT_AES (ecb, cbc) 
-* ALT_DES/3 (ecb, cbc)
+* ALT_DES/3 (ecb, cbc) 
 * Enable engine from - middleware\mbedtls\configs\config-pic32-basic.h  bottom at the file
+
 
 ```
 [MRF] Init Done
